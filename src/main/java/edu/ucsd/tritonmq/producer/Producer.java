@@ -1,10 +1,13 @@
-package edu.ucsd.tritonmq;
+package edu.ucsd.tritonmq.producer;
+
+import edu.ucsd.tritonmq.common.Callback;
 
 /**
  * Created by dangyi on 5/28/17.
  */
 public class Producer {
     /**
+     * Create a producer
      *
      * @param zooKeeperAddr curator connect string
      */
@@ -13,7 +16,7 @@ public class Producer {
     }
 
     /**
-     * Asynchronous method.
+     * Asynchronously send the message to broker.
      *
      * 1. Look for the group for topic
      * 2. Connect to the primary of that group and send message
@@ -21,7 +24,11 @@ public class Producer {
      * @param topic
      * @param message
      */
-    void publish(String topic, Object message) {
+    void publish(String topic, Object message, Callback callback) {
+
+    }
+
+    void close() {
 
     }
 

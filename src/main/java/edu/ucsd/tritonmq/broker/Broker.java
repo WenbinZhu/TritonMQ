@@ -1,4 +1,4 @@
-package edu.ucsd.tritonmq;
+package edu.ucsd.tritonmq.broker;
 
 import org.apache.curator.CuratorZookeeperClient;
 
