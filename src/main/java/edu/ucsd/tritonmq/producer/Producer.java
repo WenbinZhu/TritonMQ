@@ -11,7 +11,7 @@ public class Producer {
      *
      * @param zooKeeperAddr curator connect string
      */
-    Producer(String zooKeeperAddr) {
+    public Producer(String zooKeeperAddr) {
 
     }
 
@@ -24,11 +24,11 @@ public class Producer {
      * @param topic
      * @param message
      */
-    void publish(String topic, Object message, Callback callback) {
+    public void publish(String topic, Object message, Callback callback) {
 
     }
 
-    void close() {
+    public void close() {
 
     }
 
