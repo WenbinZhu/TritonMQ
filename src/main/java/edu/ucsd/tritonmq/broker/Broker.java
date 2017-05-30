@@ -7,7 +7,7 @@ import java.net.InetSocketAddress;
 /**
  * Created by dangyi on 5/28/17.
  */
-public class Broker {
+public class Broker extends BrokerService {
     /**
      * Create a new broker in a specific group. ZooKeeper will automatically
      * selects the leader.
@@ -18,7 +18,6 @@ public class Broker {
      * @param groupId which group this broker belongs to
      */
     public Broker(String zooKeeperAddr, int groupId) {
-
     }
 
     /**
