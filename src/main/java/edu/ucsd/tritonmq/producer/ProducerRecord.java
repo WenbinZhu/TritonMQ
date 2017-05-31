@@ -1,18 +1,23 @@
 package edu.ucsd.tritonmq.producer;
 
-import edu.ucsd.tritonmq.common.CommonRecord;
+import edu.ucsd.tritonmq.common.Record;
 
 import java.util.UUID;
 
-public class ProducerRecord<T> implements CommonRecord<T> {
+public class ProducerRecord<T> implements Record<T> {
     private String topic;
     private T value;
     private UUID uuid;
+    private int groupId = -1;
 
     public ProducerRecord(String topic, T value, UUID uuid) {
         this.topic = topic;
         this.value = value;
         this.uuid = uuid;
+    }
+
+    public void setGroupId(int groupId) {
+        this.groupId = groupId;
     }
 
     @Override
@@ -25,7 +30,12 @@ public class ProducerRecord<T> implements CommonRecord<T> {
         return this.value;
     }
 
+
     public UUID uuid() {
         return this.uuid;
+    }
+
+    public int groupId() {
+        return this.groupId;
     }
 }
