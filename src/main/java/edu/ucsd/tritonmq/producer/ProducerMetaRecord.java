@@ -7,6 +7,7 @@ import java.util.UUID;
 public class ProducerMetaRecord implements MetaRecord {
     private String topic;
     private UUID uuid;
+    private boolean succ;
 
     @Override
     public String topic() {
@@ -15,5 +16,9 @@ public class ProducerMetaRecord implements MetaRecord {
 
     public UUID uuid() {
         return this.uuid;
+    }
+
+    public boolean succ() {
+        return this.succ;
     }
 }
