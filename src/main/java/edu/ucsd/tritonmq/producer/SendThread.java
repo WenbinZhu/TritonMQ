@@ -1,52 +1,51 @@
 package edu.ucsd.tritonmq.producer;
 
 import com.linecorp.armeria.client.Clients;
-import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import edu.ucsd.tritonmq.broker.BrokerService;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
-import org.apache.thrift.TException;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.file.Paths;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static java.util.Calendar.SECOND;
 
+/**
+ * Created by Wenbin on 5/31/17.
+ */
 public class SendThread<T> extends Thread {
     private int numRetry;
     private int maxInFlight;
     private String zkAddr;
-    private String[] groupLeaders;
     private CuratorFramework zkClient;
     private ExecutorService executors;
-    private BrokerService.AsyncIface[] leaderClients;
+    private PathChildrenCache primaryMonitor;
+    private BrokerService.Iface[] primaryClients;
     private ConcurrentLinkedQueue<ProducerRecord<T>> bufferQueue;
-    private Map<ProducerRecord, CompletableFuture<ProducerMetaRecord>> futureMaps;
+    private Map<ProducerRecord, CompletableFuture<ProducerMetaRecord>> futureMap;
 
     SendThread(int numRetry, int maxInFlight, String zkAddr) {
         this.numRetry = numRetry;
         this.maxInFlight = maxInFlight;
         this.zkAddr = zkAddr;
-        this.groupLeaders = new String[NumBrokerGroups];
         this.bufferQueue = new ConcurrentLinkedQueue<>();
         this.executors = Executors.newFixedThreadPool(maxInFlight);
         setZkClientConn();
-        initGroupLeaders();
-
-        // TODO: Get group leaders
-
+        initPrimaryListener();
     }
 
+    /**
+     * Set connection to Zookeeper
+     */
     private void setZkClientConn() {
         RetryPolicy rp = new ExponentialBackoffRetry(SECOND, 3);
         this.zkClient = CuratorFrameworkFactory
@@ -57,22 +56,61 @@ public class SendThread<T> extends Thread {
                 .retryPolicy(rp).build();
 
         this.zkClient.start();
-
     }
 
-    private void initGroupLeaders() {
-        // TODO: Init group leader addresses
+    /**
+     * Get notified if any group primary changes
+     */
+    private void initPrimaryListener() {
+        PathChildrenCacheListener plis = (client, event) -> {
+            switch (event.getType()) {
+                case CHILD_UPDATED: {
+                    String[] segments = event.getData().getPath().split("/");
+                    int groupId = Integer.valueOf(segments[segments.length - 1]);
+                    updatePrimary(groupId);
+                    break;
+                }
+            }
+        };
 
-        // TODO: Init group leader clients
-
+        String primaryPath = "/primary";
+        primaryMonitor = new PathChildrenCache(zkClient, primaryPath, false);
+        try {
+            primaryMonitor.start();
+            primaryMonitor.getListenable().addListener(plis);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    private void updateGroupLeader(int groupId, String leaderAddr) {
-        // TODO: update group leader
+
+    /**
+     * Update the connection to a group primary
+     *
+     * @param groupId the group number to be updated
+     */
+    private void updatePrimary(int groupId) {
+        String primaryPath = Paths.get("/primary", String.valueOf(groupId)).toString();
+        try {
+            String primaryUrl = new String(zkClient.getData().forPath(primaryPath));
+            primaryUrl = Paths.get("tbinary+http://" + primaryUrl, "send").toString();
+
+            BrokerService.Iface client = Clients.newClient(primaryUrl, BrokerService.Iface.class);
+            primaryClients[groupId] = client;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
+    /**
+     * Push record to the buffer queue
+     *
+     * @param record the producer generated record
+     * @param future the producer future to be updated when the record is actually sent
+     */
     public void send(ProducerRecord<T> record, CompletableFuture<ProducerMetaRecord> future) {
-        futureMaps.put(record, future);
+        futureMap.put(record, future);
         bufferQueue.offer(record);
     }
 
@@ -83,49 +121,75 @@ public class SendThread<T> extends Thread {
                 break;
             }
 
+            CountDownLatch countDownLatch = new CountDownLatch(maxInFlight);
+
             for (int i = 0; i < maxInFlight; i++) {
                 ProducerRecord<T> record = bufferQueue.poll();
                 if (record == null)
                     break;
                 executors.execute(new SendHandler(record));
             }
+
+            try {
+                countDownLatch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
+    /**
+     * Close the send thread
+     */
     public void close() {
         executors.shutdown();
         zkClient.close();
     }
 
     private class SendHandler extends Thread {
+        private int groupId;
         private ProducerRecord<T> record;
+        private boolean finished = false;
 
         SendHandler(ProducerRecord<T> record) {
             this.record = record;
+            this.groupId = record.groupId();
+        }
+
+        public void finish() {
+            finished = true;
         }
 
         @Override
         public void run() {
-            for (int i = 0; i < numRetry; i++) {
-                int groupID = record.groupId();
-                ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
-
+            for (int i = 0; i < numRetry && !finished; i++) {
                 try {
                     ByteArrayOutputStream bao = new ByteArrayOutputStream();
                     ObjectOutputStream output = new ObjectOutputStream(bao);
                     output.writeObject(record);
                     byte[] bytes = bao.toByteArray();
 
-                    leaderClients[groupID].send(ByteBuffer.wrap(bytes), future);
+                    if (primaryClients[groupId] == null)
+                        updatePrimary(groupId);
 
-                    // TODO: break if received succ
+                    String ret = primaryClients[groupId].send(ByteBuffer.wrap(bytes));
+                    if (ret.equals(Succ))
+                        finish();
 
-                } catch (TException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
+
+            if (finished) {
+                ProducerMetaRecord metaRecord = new ProducerMetaRecord(record.topic(), record.uuid(), true);
+                futureMap.get(record).complete(metaRecord);
+            } else {
+                ProducerMetaRecord metaRecord = new ProducerMetaRecord(record.topic(), record.uuid(), false);
+                futureMap.get(record).complete(metaRecord);
+            }
+
+            futureMap.remove(record);
         }
     }
 }
