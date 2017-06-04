@@ -31,12 +31,10 @@ public class Producer<T> {
     }
 
     /**
-     * Asynchronously send the message to broker.
+     * Asynchronously publish the message to broker
+     * and return a future to user
      *
-     * 1. Look for the group for topic
-     * 2. Connect to the primary of that group and send message
-     *
-     * @param record producer record
+     * @param record producer generated record
      */
     public CompletableFuture<ProducerMetaRecord> publish(ProducerRecord<T> record) {
         // Find group number
