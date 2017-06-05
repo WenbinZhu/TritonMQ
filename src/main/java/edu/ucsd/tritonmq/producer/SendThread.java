@@ -1,6 +1,7 @@
 package edu.ucsd.tritonmq.producer;
 
 import com.linecorp.armeria.client.Clients;
+import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import edu.ucsd.tritonmq.broker.BrokerService;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -23,17 +24,18 @@ import static java.util.Calendar.SECOND;
  * Created by Wenbin on 5/31/17.
  */
 public class SendThread<T> extends Thread {
+    private int timeout;
     private int numRetry;
     private int maxInFlight;
     private String zkAddr;
     private CuratorFramework zkClient;
     private ExecutorService executors;
     private PathChildrenCache primaryMonitor;
-    private BrokerService.Iface[] primaryClients;
+    private BrokerService.AsyncIface[] primaryClients;
     private ConcurrentLinkedQueue<ProducerRecord<T>> bufferQueue;
     private Map<ProducerRecord, CompletableFuture<ProducerMetaRecord>> futureMap;
 
-    SendThread(int numRetry, int maxInFlight, String zkAddr) {
+    SendThread(int timeout, int numRetry, int maxInFlight, String zkAddr) {
         this.numRetry = numRetry;
         this.maxInFlight = maxInFlight;
         this.zkAddr = zkAddr;
@@ -95,7 +97,7 @@ public class SendThread<T> extends Thread {
             String primaryUrl = new String(zkClient.getData().forPath(primaryPath));
             primaryUrl = Paths.get("tbinary+http://" + primaryUrl, "send").toString();
 
-            BrokerService.Iface client = Clients.newClient(primaryUrl, BrokerService.Iface.class);
+            BrokerService.AsyncIface client = Clients.newClient(primaryUrl, BrokerService.AsyncIface.class);
             primaryClients[groupId] = client;
 
         } catch (Exception e) {
@@ -146,24 +148,30 @@ public class SendThread<T> extends Thread {
         zkClient.close();
     }
 
+    /**
+     * Handler thread for sending a record
+     */
     private class SendHandler extends Thread {
         private int groupId;
         private ProducerRecord<T> record;
-        private boolean finished = false;
+        private boolean done = false;
 
         SendHandler(ProducerRecord<T> record) {
             this.record = record;
             this.groupId = record.groupId();
         }
 
-        public void finish() {
-            finished = true;
+        public void done() {
+            done = true;
         }
 
         @Override
         public void run() {
-            for (int i = 0; i < numRetry && !finished; i++) {
+            CountDownLatch countDownLatch = new CountDownLatch(1);
+
+            for (int i = 0; i < numRetry && !done; i++) {
                 try {
+                    ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
                     ByteArrayOutputStream bao = new ByteArrayOutputStream();
                     ObjectOutputStream output = new ObjectOutputStream(bao);
                     output.writeObject(record);
@@ -172,16 +180,23 @@ public class SendThread<T> extends Thread {
                     if (primaryClients[groupId] == null)
                         updatePrimary(groupId);
 
-                    String ret = primaryClients[groupId].send(ByteBuffer.wrap(bytes));
-                    if (ret.equals(Succ))
-                        finish();
+                    primaryClients[groupId].send(ByteBuffer.wrap(bytes), future);
+
+                    future.thenAccept(response -> {
+                        if (response.equals(Succ)) {
+                            done();
+                            countDownLatch.countDown();
+                        }
+                    });
+
+                    countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
 
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
 
-            if (finished) {
+            if (done) {
                 ProducerMetaRecord metaRecord = new ProducerMetaRecord(record.topic(), record.uuid(), true);
                 futureMap.get(record).complete(metaRecord);
             } else {

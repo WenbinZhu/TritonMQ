@@ -10,10 +10,10 @@ import static edu.ucsd.tritonmq.common.GlobalConfig.*;
  */
 public class Producer<T> {
     private int numRetry;
+    private int timeout;
     private int maxInFlight;
     private String zkAddr;
     private SendThread<T> sendThread;
-
 
     /**
      * Create a producer
@@ -23,10 +23,11 @@ public class Producer<T> {
     public Producer(Properties configs) {
         int nr = Integer.valueOf(configs.getProperty("numRetry"));
         int mif = Integer.valueOf(configs.getProperty("maxInFlight"));
+        this.timeout = Integer.valueOf(configs.getProperty("timeout"));
         this.zkAddr = configs.getProperty("zkAddr");
         this.numRetry = Integer.min(5, Integer.max(nr, 0));
         this.maxInFlight = Integer.min(10, Integer.max(mif, 0));
-        this.sendThread = new SendThread<>(numRetry, maxInFlight, zkAddr);
+        this.sendThread = new SendThread<>(timeout, numRetry, maxInFlight, zkAddr);
         sendThread.start();
     }
 

@@ -10,6 +10,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.zookeeper.CreateMode;
 
 /**
  *
@@ -46,7 +47,7 @@ public class LeaderElectionExample {
             client.create().creatingParentsIfNeeded().forPath(path);
         }
 
-        LeaderLatch latch = new LeaderLatch(client, path);
+        LeaderLatch latch = new LeaderLatch(client, path, "replica"); //id="replica"就是ephemeral节点的value
         latch.addListener(new LeaderLatchListener() {
 
             public void notLeader() {

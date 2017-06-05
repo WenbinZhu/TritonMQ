@@ -9,6 +9,9 @@
 
 - 每个Broker监控自己是否成为primary, 参考`LeaderElectionExample.java`
 
+- 使用Curator进行监听，最好使用listener， 比如`PathChildrenCacheListener`， 而不是watcher，因为watcher是one-time-trigger,
+后续发生多次事件的话只会监听到第一次，除非重新绑定watcher
+
 - 序列化：
 ```
 ByteArrayOutputStream bao = new ByteArrayOutputStream();
