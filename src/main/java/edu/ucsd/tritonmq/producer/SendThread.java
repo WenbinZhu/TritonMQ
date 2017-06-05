@@ -54,11 +54,11 @@ public class SendThread<T> extends Thread {
     private void setZkClientConn() {
         RetryPolicy rp = new ExponentialBackoffRetry(Second, 3);
         zkClient = CuratorFrameworkFactory
-                .builder()
-                .connectString(this.zkAddr)
-                .sessionTimeoutMs(5 * Second)
-                .connectionTimeoutMs(3 * Second)
-                .retryPolicy(rp).build();
+                   .builder()
+                   .connectString(this.zkAddr)
+                   .sessionTimeoutMs(5 * Second)
+                   .connectionTimeoutMs(3 * Second)
+                   .retryPolicy(rp).build();
 
         zkClient.start();
     }

@@ -2,6 +2,7 @@ package edu.ucsd.tritonmq.producer;
 
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
@@ -33,6 +34,7 @@ public class Producer<T> {
         this.numRetry = Integer.min(5, Integer.max(nr, 0));
         this.maxInFlight = Integer.min(10, Integer.max(mif, 0));
         this.sendThread = new SendThread<>(timeout, numRetry, maxInFlight, zkAddr);
+
         sendThread.start();
     }
 
