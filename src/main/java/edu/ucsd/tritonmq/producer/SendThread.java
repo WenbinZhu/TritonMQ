@@ -13,12 +13,11 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
-import static java.util.Calendar.SECOND;
 
 /**
  * Created by Wenbin on 5/31/17.
@@ -36,11 +35,15 @@ public class SendThread<T> extends Thread {
     private Map<ProducerRecord, CompletableFuture<ProducerMetaRecord>> futureMap;
 
     SendThread(int timeout, int numRetry, int maxInFlight, String zkAddr) {
+        this.timeout = timeout;
         this.numRetry = numRetry;
         this.maxInFlight = maxInFlight;
         this.zkAddr = zkAddr;
+        this.futureMap = new HashMap<>();
         this.bufferQueue = new ConcurrentLinkedQueue<>();
         this.executors = Executors.newFixedThreadPool(maxInFlight);
+        this.primaryClients = new BrokerService.AsyncIface[NumBrokerGroups];
+
         setZkClientConn();
         initPrimaryListener();
     }
@@ -49,15 +52,15 @@ public class SendThread<T> extends Thread {
      * Set connection to Zookeeper
      */
     private void setZkClientConn() {
-        RetryPolicy rp = new ExponentialBackoffRetry(SECOND, 3);
-        this.zkClient = CuratorFrameworkFactory
+        RetryPolicy rp = new ExponentialBackoffRetry(Second, 3);
+        zkClient = CuratorFrameworkFactory
                 .builder()
                 .connectString(this.zkAddr)
-                .sessionTimeoutMs(5 * SECOND)
-                .connectionTimeoutMs(3 * SECOND)
+                .sessionTimeoutMs(5 * Second)
+                .connectionTimeoutMs(3 * Second)
                 .retryPolicy(rp).build();
 
-        this.zkClient.start();
+        zkClient.start();
     }
 
     /**
@@ -92,10 +95,10 @@ public class SendThread<T> extends Thread {
      * @param groupId the group number to be updated
      */
     private void updatePrimary(int groupId) {
-        String primaryPath = Paths.get("/primary", String.valueOf(groupId)).toString();
+        String primaryPath = "/primary/" + String.valueOf(groupId);
         try {
             String primaryUrl = new String(zkClient.getData().forPath(primaryPath));
-            primaryUrl = Paths.get("tbinary+http://" + primaryUrl, "send").toString();
+            primaryUrl = "tbinary+http://" + primaryUrl + "/send";
 
             BrokerService.AsyncIface client = Clients.newClient(primaryUrl, BrokerService.AsyncIface.class);
             primaryClients[groupId] = client;
@@ -118,22 +121,26 @@ public class SendThread<T> extends Thread {
 
     @Override
     public void run() {
+        CountDownLatch executorLatch = new CountDownLatch(maxInFlight);
+
         while (true) {
             if (Thread.interrupted()) {
                 break;
             }
 
-            CountDownLatch countDownLatch = new CountDownLatch(maxInFlight);
-
             for (int i = 0; i < maxInFlight; i++) {
                 ProducerRecord<T> record = bufferQueue.poll();
-                if (record == null)
-                    break;
-                executors.execute(new SendHandler(record));
+
+                if (record == null) {
+                    executorLatch.countDown();
+                    continue;
+                }
+
+                executors.execute(new SendHandler(record, executorLatch));
             }
 
             try {
-                countDownLatch.await();
+                executorLatch.await();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -155,10 +162,12 @@ public class SendThread<T> extends Thread {
         private int groupId;
         private ProducerRecord<T> record;
         private boolean done = false;
+        private CountDownLatch executorLatch;
 
-        SendHandler(ProducerRecord<T> record) {
+        SendHandler(ProducerRecord<T> record, CountDownLatch executorLatch) {
             this.record = record;
             this.groupId = record.groupId();
+            this.executorLatch = executorLatch;
         }
 
         public void done() {
@@ -167,9 +176,9 @@ public class SendThread<T> extends Thread {
 
         @Override
         public void run() {
-            CountDownLatch countDownLatch = new CountDownLatch(1);
+            CountDownLatch sendLatch = new CountDownLatch(1);
 
-            for (int i = 0; i < numRetry && !done; i++) {
+            for (int i = 0; i < numRetry + 1 && !done; i++) {
                 try {
                     ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
                     ByteArrayOutputStream bao = new ByteArrayOutputStream();
@@ -185,11 +194,11 @@ public class SendThread<T> extends Thread {
                     future.thenAccept(response -> {
                         if (response.equals(Succ)) {
                             done();
-                            countDownLatch.countDown();
+                            sendLatch.countDown();
                         }
                     });
 
-                    countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
+                    sendLatch.await(timeout, TimeUnit.MILLISECONDS);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -204,7 +213,10 @@ public class SendThread<T> extends Thread {
                 futureMap.get(record).complete(metaRecord);
             }
 
+            // Should remove and poll first then countdown
             futureMap.remove(record);
+            bufferQueue.poll();
+            executorLatch.countDown();
         }
     }
 }

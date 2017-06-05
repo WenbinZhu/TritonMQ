@@ -19,6 +19,13 @@ public class ProducerRecord<T> implements Record<T> {
         this.uuid = uuid;
     }
 
+    public ProducerRecord(String topic, T value) {
+        this.topic = topic;
+        this.value = value;
+        this.uuid = UUID.randomUUID();
+    }
+
+
     public void setGroupId(int groupId) {
         this.groupId = groupId;
     }
