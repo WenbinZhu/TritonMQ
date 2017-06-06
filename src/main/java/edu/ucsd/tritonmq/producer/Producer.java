@@ -1,8 +1,8 @@
 package edu.ucsd.tritonmq.producer;
 
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
@@ -80,7 +80,25 @@ public class Producer<T> {
         configs.put("zkAddr", ZkAddr);
 
         Producer<String> producer = new Producer<>(configs);
-        ProducerRecord<String> record = new ProducerRecord<>("test topic", "test message");
-        producer.publish(record);
+        ProducerRecord<String> record1 = new ProducerRecord<>("test topic", "test message");
+        ProducerRecord<String> record2 = new ProducerRecord<>("test topic", "test message");
+        ProducerRecord<String> record3 = new ProducerRecord<>("test topic", "test message");
+        ProducerRecord<String> record4 = new ProducerRecord<>("test topic", "test message");
+        ProducerRecord<String> record5 = new ProducerRecord<>("test topic", "test message");
+        ProducerRecord<String> record6 = new ProducerRecord<>("test topic", "test message");
+
+        CompletableFuture<ProducerMetaRecord> future1 = producer.publish(record1);
+        CompletableFuture<ProducerMetaRecord> future2 = producer.publish(record2);
+
+        future1.thenAccept(meta -> {
+            System.out.println(meta.topic() + ", " + meta.succ());
+        });
+        future2.thenAccept(meta -> {
+            System.out.println(meta.topic() + ", " + meta.succ());
+        });
+        // producer.publish(record3);
+        // producer.publish(record4);
+        // producer.publish(record5);
+        // producer.publish(record6);
     }
 }

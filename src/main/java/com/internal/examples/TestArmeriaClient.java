@@ -1,11 +1,6 @@
 package com.internal.examples;
 
-import com.linecorp.armeria.client.ClientBuilder;
 import com.linecorp.armeria.client.Clients;
-import com.linecorp.armeria.client.retry.RetryingClient;
-import com.linecorp.armeria.client.retry.RetryingRpcClient;
-import com.linecorp.armeria.common.Request;
-import com.linecorp.armeria.common.Response;
 import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import org.apache.thrift.TException;
 

@@ -1,3 +1,6 @@
+- Curator 和 Armeria 都依赖`guava`, 但依赖不同版本，且两个版本不兼容。因此务必使用3.3.0版本的Curator以及更新机器上的zookeeper版本到3.5.2 
+(卸载原来brew装的3.4.9，再下3.5.2源码)
+
 - Zookeeper地址:
     - /primary/0 -> localhost:9001
     - /primary/1 -> localhost:9005
@@ -5,7 +8,7 @@
     - /replica/1 -> localhost:9004, localhost:9005, localhost:9006
     - 依此类推
    
-- Junit 遇到`CountDownLatch.await()`时会跳出并终止jvm，需要特殊处理，简单的办法是不用Junit，直接在`main`里面测试这类问题
+- Junit 无法测试异步方法，简单做法直接在`main`里面测试这类问题，或者在Junit的test case 中加上countdownlatch
     
 - Broker assume每个group至少启动一个节点，因此producer启动前`/primary`和`/replica`下的所有grouId节点都要建立好
 

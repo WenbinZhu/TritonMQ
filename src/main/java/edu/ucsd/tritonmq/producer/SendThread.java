@@ -1,11 +1,13 @@
 package edu.ucsd.tritonmq.producer;
 
+import com.linecorp.armeria.client.ClientOption;
 import com.linecorp.armeria.client.Clients;
 import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import edu.ucsd.tritonmq.broker.BrokerService;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -46,6 +48,9 @@ public class SendThread<T> extends Thread {
 
         setZkClientConn();
         initPrimaryListener();
+
+        assert zkClient != null;
+        assert zkClient.getState() == CuratorFrameworkState.STARTED;
     }
 
     /**
@@ -161,8 +166,8 @@ public class SendThread<T> extends Thread {
     private class SendHandler extends Thread {
         private int groupId;
         private ProducerRecord<T> record;
-        private boolean done = false;
         private CountDownLatch executorLatch;
+        private volatile boolean done = false;
 
         SendHandler(ProducerRecord<T> record, CountDownLatch executorLatch) {
             this.record = record;
@@ -176,9 +181,8 @@ public class SendThread<T> extends Thread {
 
         @Override
         public void run() {
-            CountDownLatch sendLatch = new CountDownLatch(1);
-
             for (int i = 0; i < numRetry + 1 && !done; i++) {
+                CountDownLatch sendLatch = new CountDownLatch(1);
                 try {
                     ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
                     ByteArrayOutputStream bao = new ByteArrayOutputStream();
@@ -196,6 +200,10 @@ public class SendThread<T> extends Thread {
                             done();
                             sendLatch.countDown();
                         }
+                    })
+                    .exceptionally(cause -> {
+                        sendLatch.countDown();
+                        return null;
                     });
 
                     sendLatch.await(timeout, TimeUnit.MILLISECONDS);
@@ -213,9 +221,9 @@ public class SendThread<T> extends Thread {
                 futureMap.get(record).complete(metaRecord);
             }
 
-            // Should remove and poll first then countdown
+            // Should remove then countdown
             futureMap.remove(record);
-            bufferQueue.poll();
+            System.out.println(done);
             executorLatch.countDown();
         }
     }
