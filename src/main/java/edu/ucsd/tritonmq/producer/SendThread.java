@@ -1,6 +1,5 @@
 package edu.ucsd.tritonmq.producer;
 
-import com.linecorp.armeria.client.ClientOption;
 import com.linecorp.armeria.client.Clients;
 import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import edu.ucsd.tritonmq.broker.BrokerService;
@@ -57,12 +56,12 @@ public class SendThread<T> extends Thread {
      * Set connection to Zookeeper
      */
     private void setZkClientConn() {
-        RetryPolicy rp = new ExponentialBackoffRetry(Second, 3);
+        RetryPolicy rp = new ExponentialBackoffRetry(Second, 2);
         zkClient = CuratorFrameworkFactory
                    .builder()
                    .connectString(this.zkAddr)
-                   .sessionTimeoutMs(5 * Second)
-                   .connectionTimeoutMs(3 * Second)
+                   .sessionTimeoutMs(Second)
+                   .connectionTimeoutMs(Second)
                    .retryPolicy(rp).build();
 
         zkClient.start();

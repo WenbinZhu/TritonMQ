@@ -9,7 +9,7 @@ import static edu.ucsd.tritonmq.common.GlobalConfig.*;
  */
 public class ConsumerTest {
     @Test
-    public void ConsumerCanStart() {
+    public void ConsumerCanStart() throws InterruptedException {
         for (int i = 5001; i < 5005; i++) {
             Properties configs = new Properties();
             configs.put("host", "localhost");
@@ -17,12 +17,13 @@ public class ConsumerTest {
             configs.put("zkAddr", ZkAddr);
 
             Consumer consumer = new Consumer(configs);
+
+            consumer.subscribe(new String[]{"t1", "t2"});
+            Thread.sleep(2000);
+            consumer.unSubscribe(new String[]{"t1"});
+            consumer.subscribe(new String[]{"t1"});
         }
 
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        Thread.sleep(10000);
     }
 }

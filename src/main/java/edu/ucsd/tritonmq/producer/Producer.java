@@ -1,7 +1,6 @@
 package edu.ucsd.tritonmq.producer;
 
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;

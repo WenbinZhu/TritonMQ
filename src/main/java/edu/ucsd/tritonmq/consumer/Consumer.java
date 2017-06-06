@@ -1,16 +1,17 @@
 package edu.ucsd.tritonmq.consumer;
 
-import edu.ucsd.tritonmq.common.Callback;
-import edu.ucsd.tritonmq.common.TopicInfo;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 
-import java.util.Properties;
+import java.util.*;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.Second;
+import static edu.ucsd.tritonmq.common.GlobalConfig.SubscribePath;
+
 
 /**
  * Created by dangyi on 5/28/17.
@@ -20,8 +21,11 @@ public class Consumer {
     private String host;
     private String address;
     private String zkAddr;
-    private String zkPath;
+    private Thread recvThread;
+    private volatile boolean started;
     private CuratorFramework zkClient;
+    private HashSet<String> subscription;
+    private HashMap<String, Queue<ConsumerRecord<?>>> records;
 
     /**
      * Create a consumer
@@ -29,50 +33,90 @@ public class Consumer {
      * @param configs consumer configs including zk address etc
      */
     public Consumer(Properties configs) {
+        this.started = false;
         this.host = configs.getProperty("host");
         this.port = (Integer) configs.get("port");
-        this.address = host + "::" + port;
+        this.address = host + ":" + port;
         this.zkAddr = configs.getProperty("zkAddr");
-        this.zkPath = "/consumer/" + address + "_";
+        this.subscription = new HashSet<>();
+        this.records = new HashMap<>();
+        this.recvThread = new Thread(new RecvThread(this));
+
         setZkClientConn();
-        register();
+
+        assert zkClient != null;
+        assert zkClient.getState() == CuratorFrameworkState.STARTED;
     }
 
-    /**
-     * Set connection to Zookeeper
-     */
     private void setZkClientConn() {
-        RetryPolicy rp = new ExponentialBackoffRetry(Second, 3);
+        RetryPolicy rp = new ExponentialBackoffRetry(Second, 2);
         zkClient = CuratorFrameworkFactory
                 .builder()
                 .connectString(this.zkAddr)
                 .sessionTimeoutMs(Second)
-                .connectionTimeoutMs(3 * Second)
+                .connectionTimeoutMs(Second)
                 .retryPolicy(rp).build();
 
         zkClient.start();
     }
 
-    private void register() {
+    private void register(String topic) {
+        String path = SubscribePath + topic + "/" + address;
+
         try {
-            zkClient.create().withMode(CreateMode.EPHEMERAL_SEQUENTIAL).forPath(zkPath);
+            if (!subscription.contains(topic)) {
+                zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
+                subscription.add(topic);
+                records.put(topic, new LinkedList<>());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    private void unregister(String topic) {
+        String path = SubscribePath + topic + "/" + address;
+
+        try {
+            if (subscription.contains(topic)) {
+                zkClient.delete().deletingChildrenIfNeeded().forPath(path);
+                subscription.remove(topic);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
     /**
-     * Asynchronously subscribe to a topic
+     * Subscribe to some topics
      *
-     * 1. setup and start an RPC server
-     * 2. register itself's address to ZooKeeper
+     * @param topics message topics
+     */
+    public void subscribe(String[] topics) {
+        for (String topic : topics) {
+            subscribe(topic);
+        }
+    }
+
+    /**
+     * Subscribe to a topic
      *
      * @param topic message topic
-     * @param callback callback upon message received, will only be called at
-     *                 most once at a time
      */
-    void subscribe(String topic, Callback callback) {
+    public void subscribe(String topic) {
+        register(topic);
+    }
 
+    /**
+     * unsubscribe to some topics
+     *
+     * @param topics message topics
+     */
+    public void unSubscribe(String[] topics) {
+        for (String topic: topics) {
+            unSubscribe(topic);
+        }
     }
 
     /**
@@ -80,15 +124,63 @@ public class Consumer {
      *
      * @param topic message topic
      */
-    void unSubscribe(String topic) {
+    public void unSubscribe(String topic) {
+        unregister(topic);
+    }
 
+    /**
+     * list all subscribed topics
+     *
+     * @return all subscribed topics
+     */
+    public String[] subscription() {
+        return subscription.toArray(new String[0]);
+    }
+
+    /**
+     * start receiving records, use records() to get records
+     */
+    public synchronized void start() {
+        if (started)
+            return;
+
+        recvThread.start();
+    }
+
+    /**
+     * stop receiving records
+     */
+    public synchronized void stop() {
+        try {
+            recvThread.interrupt();
+            recvThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        started = false;
+    }
+
+    /**
+     * Get the queue with received records
+     *
+     * @return queue with received records
+     */
+    public HashMap<String, Queue<ConsumerRecord<?>>> records() {
+        return records;
     }
 
     /**
      * List all subscribed topics
      */
-    TopicInfo[] listTopics() {
-        throw new UnsupportedOperationException();
+    public String[] listAllTopics() {
+        try {
+            List<String> topics = zkClient.getChildren().forPath(SubscribePath);
+            return topics.toArray(new String[0]);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new String[0];
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package edu.ucsd.tritonmq.common;
 
+
 /**
  * Created by Wenbin on 5/31/17.
  */
@@ -19,5 +20,7 @@ public class GlobalConfig {
     public final static String Fail = "Fail";
 
     public final static String ZkAddr = "localhost:2181";
+
+    public final static String SubscribePath = "/subscribe/";
 
 }
