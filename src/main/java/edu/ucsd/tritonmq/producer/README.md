@@ -7,7 +7,7 @@
     - /replica/0 -> localhost:9001, localhost:9002, localhost:9003
     - /replica/1 -> localhost:9004, localhost:9005, localhost:9006
     - 依此类推
-   
+
 - Junit 无法测试异步方法，简单做法直接在`main`里面测试这类问题，或者在Junit的test case 中加上countdownlatch
     
 - Broker assume每个group至少启动一个节点，因此producer启动前`/primary`和`/replica`下的所有grouId节点都要建立好
@@ -23,10 +23,13 @@
 - 使用Curator进行监听，最好使用listener， 比如`PathChildrenCacheListener`， 而不是watcher，因为watcher是one-time-trigger,
 后续发生多次事件的话只会监听到第一次，除非重新绑定watcher
 
+- Consumer 注册结构 /subscribe/topic1/consumer1
+
 - 序列化：
 ```
 ByteArrayOutputStream bao = new ByteArrayOutputStream();
 ObjectOutputStream output = new ObjectOutputStream(bao);
 output.writeObject(record);
 byte[] bytes = bao.toByteArray();
+send(ByteBuffer.wrap(bytes), future);
 ```

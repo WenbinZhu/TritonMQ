@@ -1,5 +1,10 @@
 package edu.ucsd.tritonmq.consumer;
 
+import com.linecorp.armeria.common.SerializationFormat;
+import com.linecorp.armeria.common.SessionProtocol;
+import com.linecorp.armeria.server.Server;
+import com.linecorp.armeria.server.ServerBuilder;
+import com.linecorp.armeria.server.thrift.THttpService;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -7,6 +12,7 @@ import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 
+import java.net.InetSocketAddress;
 import java.util.*;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.Second;
@@ -21,7 +27,7 @@ public class Consumer {
     private String host;
     private String address;
     private String zkAddr;
-    private Thread recvThread;
+    private Server server;
     private volatile boolean started;
     private CuratorFramework zkClient;
     private HashSet<String> subscription;
@@ -40,7 +46,6 @@ public class Consumer {
         this.zkAddr = configs.getProperty("zkAddr");
         this.subscription = new HashSet<>();
         this.records = new HashMap<>();
-        this.recvThread = new Thread(new RecvThread(this));
 
         setZkClientConn();
 
@@ -144,20 +149,20 @@ public class Consumer {
         if (started)
             return;
 
-        recvThread.start();
+        InetSocketAddress isa = new InetSocketAddress(host, port);
+        ServerBuilder sb = new ServerBuilder();
+        sb.port(isa, SessionProtocol.HTTP).serviceAt("/deliver",
+                THttpService.of(new RecvThread(records), SerializationFormat.THRIFT_BINARY));
+
+        server =  sb.build();
+        server.start();
     }
 
     /**
      * stop receiving records
      */
     public synchronized void stop() {
-        try {
-            recvThread.interrupt();
-            recvThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
+        server.stop();
         started = false;
     }
 

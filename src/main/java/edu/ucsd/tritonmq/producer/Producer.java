@@ -28,7 +28,7 @@ public class Producer<T> {
             throw new IllegalArgumentException("numRetry and maxInFlight cannot be negative");
         }
 
-        this.timeout = (Integer)configs.get("timeout");
+        this.timeout = (Integer) configs.get("timeout");
         this.zkAddr = configs.getProperty("zkAddr");
         this.numRetry = Integer.min(5, Integer.max(nr, 0));
         this.maxInFlight = Integer.min(10, Integer.max(mif, 0));
