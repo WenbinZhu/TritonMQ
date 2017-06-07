@@ -73,24 +73,25 @@ public class Consumer {
                 zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
                 subscription.add(topic);
                 records.put(topic, new LinkedList<>());
+                System.out.println("Subscribed to topic: " + topic);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void unregister(String topic) {
+    private void unRegister(String topic) {
         String path = SubscribePath + topic + "/" + address;
 
         try {
             if (subscription.contains(topic)) {
                 zkClient.delete().deletingChildrenIfNeeded().forPath(path);
                 subscription.remove(topic);
+                System.out.println("unSubscribed to topic: " + topic);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     /**
@@ -130,7 +131,7 @@ public class Consumer {
      * @param topic message topic
      */
     public void unSubscribe(String topic) {
-        unregister(topic);
+        unRegister(topic);
     }
 
     /**
@@ -159,9 +160,10 @@ public class Consumer {
     }
 
     /**
-     * stop receiving records
+     * stop receiving records from all topic
      */
     public synchronized void stop() {
+        unSubscribe(subscription());
         server.stop();
         started = false;
     }
