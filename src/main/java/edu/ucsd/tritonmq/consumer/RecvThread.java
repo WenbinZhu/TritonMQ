@@ -29,11 +29,15 @@ public class RecvThread implements ConsumerService.AsyncIface {
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(byteBuffer.array());
             ObjectInputStream input = new ObjectInputStream(bis);
-            ConsumerRecord<?> record = (ConsumerRecord<?>) input.readObject();
+            ConsumerRecord record = (ConsumerRecord) input.readObject();
             String topic = record.topic();
 
-            queue.get(topic).offer(record);
-            resultHandler.onComplete(Succ);
+            if (queue.containsKey(topic)) {
+                queue.get(topic).offer(record);
+                resultHandler.onComplete(Succ);
+            } else {
+                resultHandler.onComplete(Fail);
+            }
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();

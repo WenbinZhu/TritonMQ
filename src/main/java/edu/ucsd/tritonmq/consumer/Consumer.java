@@ -14,9 +14,9 @@ import org.apache.zookeeper.CreateMode;
 
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
-import static edu.ucsd.tritonmq.common.GlobalConfig.Second;
-import static edu.ucsd.tritonmq.common.GlobalConfig.SubscribePath;
+import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
 
 /**
@@ -70,9 +70,9 @@ public class Consumer {
 
         try {
             if (!subscription.contains(topic)) {
-                zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
                 subscription.add(topic);
-                records.put(topic, new LinkedList<>());
+                records.put(topic, new ConcurrentLinkedDeque<>());
+                zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
                 System.out.println("Subscribed to topic: " + topic);
             }
         } catch (Exception e) {
@@ -150,11 +150,10 @@ public class Consumer {
         if (started)
             return;
 
-        InetSocketAddress isa = new InetSocketAddress(host, port);
+        InetSocketAddress addr = new InetSocketAddress("localhost", port);
         ServerBuilder sb = new ServerBuilder();
-        sb.port(isa, SessionProtocol.HTTP).serviceAt("/deliver",
+        sb.port(addr, SessionProtocol.HTTP).serviceAt("/deliver",
                 THttpService.of(new RecvThread(records), SerializationFormat.THRIFT_BINARY));
-
         server =  sb.build();
         server.start();
     }
@@ -195,5 +194,30 @@ public class Consumer {
      */
     void close() {
 
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        Properties configs = new Properties();
+        configs.put("host", "localhost");
+        configs.put("port", 5001);
+        configs.put("zkAddr", ZkAddr);
+
+        Consumer consumer = new Consumer(configs);
+
+        consumer.subscribe(new String[]{"t1", "t2"});
+
+        consumer.start();
+
+        HashMap<String, Queue<ConsumerRecord<?>>> records = consumer.records();
+
+        try {
+            while (true) {
+                System.out.println(records.get("t1"));
+                records.get("t1").poll();
+                Thread.sleep(50);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
