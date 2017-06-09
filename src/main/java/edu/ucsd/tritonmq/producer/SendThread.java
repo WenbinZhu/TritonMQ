@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
+import static edu.ucsd.tritonmq.common.Utils.*;
 
 /**
  * Created by Wenbin on 5/31/17.
@@ -44,27 +45,13 @@ public class SendThread<T> extends Thread {
         this.bufferQueue = new ConcurrentLinkedQueue<>();
         this.executors = Executors.newFixedThreadPool(maxInFlight);
         this.primaryClients = new BrokerService.AsyncIface[NumBrokerGroups];
+        this.zkClient = initZkClient(Second, 1, this.zkAddr, Second, Second);
+        this.zkClient.start();
 
-        setZkClientConn();
         initPrimaryListener();
 
         assert zkClient != null;
         assert zkClient.getState() == CuratorFrameworkState.STARTED;
-    }
-
-    /**
-     * Set connection to Zookeeper
-     */
-    private void setZkClientConn() {
-        RetryPolicy rp = new ExponentialBackoffRetry(Second, 2);
-        zkClient = CuratorFrameworkFactory
-                   .builder()
-                   .connectString(this.zkAddr)
-                   .sessionTimeoutMs(Second)
-                   .connectionTimeoutMs(Second)
-                   .retryPolicy(rp).build();
-
-        zkClient.start();
     }
 
     /**

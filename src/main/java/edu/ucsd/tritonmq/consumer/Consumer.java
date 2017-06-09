@@ -5,11 +5,8 @@ import com.linecorp.armeria.common.SessionProtocol;
 import com.linecorp.armeria.server.Server;
 import com.linecorp.armeria.server.ServerBuilder;
 import com.linecorp.armeria.server.thrift.THttpService;
-import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 
 import java.net.InetSocketAddress;
@@ -17,6 +14,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
+import static edu.ucsd.tritonmq.common.Utils.*;
 
 
 /**
@@ -46,23 +44,11 @@ public class Consumer {
         this.zkAddr = configs.getProperty("zkAddr");
         this.subscription = new HashSet<>();
         this.records = new HashMap<>();
-
-        setZkClientConn();
+        this.zkClient = initZkClient(Second, 1, this.zkAddr, Second, Second);
+        this.zkClient.start();
 
         assert zkClient != null;
         assert zkClient.getState() == CuratorFrameworkState.STARTED;
-    }
-
-    private void setZkClientConn() {
-        RetryPolicy rp = new ExponentialBackoffRetry(Second, 2);
-        zkClient = CuratorFrameworkFactory
-                .builder()
-                .connectString(this.zkAddr)
-                .sessionTimeoutMs(Second)
-                .connectionTimeoutMs(Second)
-                .retryPolicy(rp).build();
-
-        zkClient.start();
     }
 
     private void register(String topic) {
