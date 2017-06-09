@@ -7,8 +7,6 @@ package edu.ucsd.tritonmq.common;
 public class GlobalConfig {
     public final static int Second = 1000;
 
-    public final static int NumBrokers = 9;
-
     public final static int NumBrokerGroups = 3;
 
     public final static int BrokerRetry = 2;
@@ -22,5 +20,9 @@ public class GlobalConfig {
     public final static String ZkAddr = "localhost:2181";
 
     public final static String SubscribePath = "/subscribe/";
+
+    public final static String ReplicaPath = "/replica/";
+
+    public final static String PrimaryPath = "/primary/";
 
 }

@@ -3,13 +3,10 @@ package edu.ucsd.tritonmq.producer;
 import com.linecorp.armeria.client.Clients;
 import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import edu.ucsd.tritonmq.broker.BrokerService;
-import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
@@ -25,8 +22,8 @@ import static edu.ucsd.tritonmq.common.Utils.*;
  * Created by Wenbin on 5/31/17.
  */
 public class SendThread<T> extends Thread {
+    private int retry;
     private int timeout;
-    private int numRetry;
     private int maxInFlight;
     private String zkAddr;
     private CuratorFramework zkClient;
@@ -36,9 +33,9 @@ public class SendThread<T> extends Thread {
     private ConcurrentLinkedQueue<ProducerRecord<T>> bufferQueue;
     private Map<ProducerRecord, CompletableFuture<ProducerMetaRecord>> futureMap;
 
-    SendThread(int timeout, int numRetry, int maxInFlight, String zkAddr) {
+    SendThread(int timeout, int retry, int maxInFlight, String zkAddr) {
+        this.retry = retry;
         this.timeout = timeout;
-        this.numRetry = numRetry;
         this.maxInFlight = maxInFlight;
         this.zkAddr = zkAddr;
         this.futureMap = new HashMap<>();
@@ -167,7 +164,7 @@ public class SendThread<T> extends Thread {
 
         @Override
         public void run() {
-            for (int i = 0; i < numRetry + 1 && !done; i++) {
+            for (int i = 0; i < retry + 1 && !done; i++) {
                 CountDownLatch sendLatch = new CountDownLatch(1);
                 try {
                     ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();

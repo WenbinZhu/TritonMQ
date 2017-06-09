@@ -44,7 +44,7 @@ public class LeaderElectionExample {
         CuratorFramework client = this.getStartedClient(thread);
         String path = "/leader_latch";
         if (client.checkExists().forPath(path) == null) {
-            client.create().creatingParentsIfNeeded().forPath(path);
+            client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
         }
 
         LeaderLatch latch = new LeaderLatch(client, path, "replica"); //id="replica"就是ephemeral节点的value

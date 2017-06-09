@@ -9,8 +9,8 @@ import static edu.ucsd.tritonmq.common.GlobalConfig.*;
  * Created by dangyi on 5/28/17.
  */
 public class Producer<T> {
+    private int retry;
     private int timeout;
-    private int numRetry;
     private int maxInFlight;
     private String zkAddr;
     private SendThread<T> sendThread;
@@ -21,18 +21,18 @@ public class Producer<T> {
      * @param configs producer configs including zk address etc
      */
     public Producer(Properties configs) {
-        int nr = (Integer) configs.get("numRetry");
+        int nr = (Integer) configs.get("retry");
         int mif = (Integer) configs.get("maxInFlight");
 
         if (nr < 0 || mif < 0) {
-            throw new IllegalArgumentException("numRetry and maxInFlight cannot be negative");
+            throw new IllegalArgumentException("retry and maxInFlight cannot be negative");
         }
 
         this.timeout = (Integer) configs.get("timeout");
         this.zkAddr = configs.getProperty("zkAddr");
-        this.numRetry = Integer.min(5, Integer.max(nr, 0));
+        this.retry = Integer.min(5, Integer.max(nr, 0));
         this.maxInFlight = Integer.min(10, Integer.max(mif, 0));
-        this.sendThread = new SendThread<>(timeout, numRetry, maxInFlight, zkAddr);
+        this.sendThread = new SendThread<>(timeout, retry, maxInFlight, zkAddr);
 
         sendThread.start();
     }
@@ -73,7 +73,7 @@ public class Producer<T> {
 
     public static void main(String[] args) {
         Properties configs = new Properties();
-        configs.put("numRetry", 2);
+        configs.put("retry", 2);
         configs.put("timeout", 100);
         configs.put("maxInFlight", 4);
         configs.put("zkAddr", ZkAddr);

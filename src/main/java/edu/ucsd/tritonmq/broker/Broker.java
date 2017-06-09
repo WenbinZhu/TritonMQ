@@ -1,23 +1,85 @@
 package edu.ucsd.tritonmq.broker;
 
-import org.apache.curator.CuratorZookeeperClient;
+import edu.ucsd.tritonmq.producer.ProducerRecord;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
+import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.net.InetSocketAddress;
+import java.util.Deque;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+
+import static edu.ucsd.tritonmq.common.GlobalConfig.*;
+import static edu.ucsd.tritonmq.common.Utils.*;
+
 
 /**
  * Created by dangyi on 5/28/17.
  */
-public class Broker extends BrokerService {
+public class Broker {
+    private int groupId;
+    private int retry;
+    private int timeout;
+    private int port;
+    private String host;
+    private String address;
+    private String zkAddr;
+    private LeaderLatch latch;
+    private CuratorFramework zkClient;
+    private volatile boolean started;
+    private Map<String, Deque<ProducerRecord<?>>> records;
+
     /**
-     * Create a new broker in a specific group. ZooKeeper will automatically
-     * selects the leader.
+     * Create a new broker in a specific group.
      *
-     * 1. Create a connection to ZooKeeper
-     *
-     * @param zooKeeperAddr curator connect string
      * @param groupId which group this broker belongs to
+     * @param configs broker configs including zk address etc
      */
-    public Broker(String zooKeeperAddr, int groupId) {
+    public Broker(int groupId, Properties configs) {
+        int nr = (Integer) configs.get("retry");
+        this.groupId = groupId;
+        this.started = false;
+        this.host = configs.getProperty("host");
+        this.port = (Integer) configs.get("port");
+        this.address = host + ":" + port;
+        this.zkAddr = configs.getProperty("zkAddr");
+        this.timeout = (Integer) configs.get("timeout");
+        this.retry = Integer.min(5, Integer.max(nr, 0));
+        this.records = new ConcurrentHashMap<>();
+        this.zkClient = initZkClient(Second, 1, this.zkAddr, 100, 100);
+        this.zkClient.start();
+
+        assert zkClient != null;
+        assert zkClient.getState() == CuratorFrameworkState.STARTED;
+
+        register();
+    }
+
+    public void register() {
+        // TODO: add listener
+
+        try {
+            latch = new LeaderLatch(zkClient, ReplicaPath + String.valueOf(groupId), address);
+            latch.addListener(new LeaderLatchListener() {
+
+                public void notLeader() {
+                    System.out.println(address + " not leader");
+                }
+
+                public void isLeader() {
+                    System.out.println(address+ " is leader");
+                }
+            });
+
+            latch.start();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -31,17 +93,11 @@ public class Broker extends BrokerService {
      *    3. listen for new-joined backups
      * 4. Otherwise, listen for primary asynchronously
      */
-    public void start() {
-        throw new UnsupportedOperationException();
-    }
+    public synchronized void start() {
+        if (started)
+            return;
 
-    /**
-     * Stop the broker
-     *
-     * 1. Close the ZooKeeper connection.
-     */
-    public void stop() {
-        throw new UnsupportedOperationException();
+        throw new NotImplementedException();
     }
 
     /**
@@ -49,6 +105,6 @@ public class Broker extends BrokerService {
      * @return the address this broker listens
      */
     public String getListenAddr() {
-        throw new UnsupportedOperationException();
+        throw new NotImplementedException();
     }
 }

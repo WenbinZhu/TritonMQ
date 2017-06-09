@@ -5,6 +5,8 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 
+import static edu.ucsd.tritonmq.common.GlobalConfig.*;
+
 public class Utils {
 
     public static CuratorFramework initZkClient(int sleepTime, int maxRetry,
@@ -19,5 +21,9 @@ public class Utils {
                                     .retryPolicy(rp).build();
 
         return zkClient;
+    }
+
+    public static CuratorFramework initZkClient() {
+        return initZkClient(Second, 2, ZkAddr, Second, Second);
     }
 }

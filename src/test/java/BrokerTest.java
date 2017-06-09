@@ -1,9 +1,17 @@
 import edu.ucsd.tritonmq.broker.Broker;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
+
+import static edu.ucsd.tritonmq.common.GlobalConfig.ZkAddr;
 import static org.junit.Assert.*;
 
 /**
@@ -11,21 +19,23 @@ import static org.junit.Assert.*;
  */
 public class BrokerTest {
     @Test
-    public void brokerCanStartAndStop() throws Exception {
-        Broker broker = new Broker(Constant.zooKeeperAddr, 0);
-        broker.start();
+    public void brokerCanStart() throws Exception {
+        Broker[] brokers = new Broker[3];
 
-        CuratorFramework client = CuratorFrameworkFactory.newClient(Constant.zooKeeperAddr,
-                new ExponentialBackoffRetry(200, 3));
-        client.start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Properties configs = new Properties();
+                configs.put("retry", 2);
+                configs.put("timeout", 200);
+                configs.put("host", "localhost");
+                configs.put("port", 9001);
+                configs.put("zkAddr", ZkAddr);
 
-        String primary = new String(client.getData().forPath("/groups/0/primary"));
+                Broker b = new Broker(0, configs);
+            }
+        }).start();
 
-        assertEquals(broker.getListenAddr(), primary);
-        assertNotNull(client.checkExists().forPath("/groups/0/replica/" + primary));
-
-        broker.stop();
-        assertNull(client.checkExists().forPath("/groups/0/replica/" + primary));
-        assertNull(client.checkExists().forPath("/groups/0/primary"));
+        Thread.sleep(1000);
     }
 }
