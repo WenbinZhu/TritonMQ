@@ -7,8 +7,10 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
+import org.apache.curator.utils.ZKPaths;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -21,7 +23,7 @@ import static edu.ucsd.tritonmq.common.Utils.*;
 /**
  * Created by Wenbin on 5/31/17.
  */
-public class SendThread<T> extends Thread {
+public class SendThread extends Thread {
     private int retry;
     private int timeout;
     private int maxInFlight;
@@ -30,7 +32,7 @@ public class SendThread<T> extends Thread {
     private ExecutorService executors;
     private PathChildrenCache primaryMonitor;
     private BrokerService.AsyncIface[] primaryClients;
-    private ConcurrentLinkedQueue<ProducerRecord<T>> bufferQueue;
+    private ConcurrentLinkedQueue<ProducerRecord<?>> bufferQueue;
     private Map<ProducerRecord, CompletableFuture<ProducerMetaRecord>> futureMap;
 
     SendThread(int timeout, int retry, int maxInFlight, String zkAddr) {
@@ -55,18 +57,19 @@ public class SendThread<T> extends Thread {
      */
     private void initPrimaryListener() {
         PathChildrenCacheListener plis = (client, event) -> {
+
             switch (event.getType()) {
                 case CHILD_UPDATED: {
-                    String[] segments = event.getData().getPath().split("/");
-                    int groupId = Integer.valueOf(segments[segments.length - 1]);
+                    String last = ZKPaths.getNodeFromPath(event.getData().getPath());
+                    int groupId = Integer.valueOf(last);
                     updatePrimary(groupId);
                     break;
                 }
             }
         };
 
-        String primaryPath = "/primary";
-        primaryMonitor = new PathChildrenCache(zkClient, primaryPath, false);
+        String path = new File(PrimaryPath, "").toString();
+        primaryMonitor = new PathChildrenCache(zkClient, path, false);
         try {
             primaryMonitor.start();
             primaryMonitor.getListenable().addListener(plis);
@@ -82,12 +85,12 @@ public class SendThread<T> extends Thread {
      * @param groupId the group number to be updated
      */
     private void updatePrimary(int groupId) {
-        String primaryPath = "/primary/" + String.valueOf(groupId);
+        String path = new File(PrimaryPath, String.valueOf(groupId)).toString();
         try {
-            String primaryUrl = new String(zkClient.getData().forPath(primaryPath));
-            primaryUrl = "tbinary+http://" + primaryUrl + "/send";
+            String primaryAddr = new String(zkClient.getData().forPath(path));
+            primaryAddr = "tbinary+http://" + primaryAddr;
 
-            BrokerService.AsyncIface client = Clients.newClient(primaryUrl, BrokerService.AsyncIface.class);
+            BrokerService.AsyncIface client = Clients.newClient(primaryAddr, BrokerService.AsyncIface.class);
             primaryClients[groupId] = client;
 
         } catch (Exception e) {
@@ -101,7 +104,7 @@ public class SendThread<T> extends Thread {
      * @param record the producer generated record
      * @param future the producer future to be updated when the record is actually sent
      */
-    public void send(ProducerRecord<T> record, CompletableFuture<ProducerMetaRecord> future) {
+    public void send(ProducerRecord<?> record, CompletableFuture<ProducerMetaRecord> future) {
         futureMap.put(record, future);
         bufferQueue.offer(record);
     }
@@ -116,7 +119,7 @@ public class SendThread<T> extends Thread {
             }
 
             for (int i = 0; i < maxInFlight; i++) {
-                ProducerRecord<T> record = bufferQueue.poll();
+                ProducerRecord<?> record = bufferQueue.poll();
 
                 if (record == null) {
                     executorLatch.countDown();
@@ -147,11 +150,11 @@ public class SendThread<T> extends Thread {
      */
     private class SendHandler extends Thread {
         private int groupId;
-        private ProducerRecord<T> record;
+        private ProducerRecord<?> record;
         private CountDownLatch executorLatch;
         private volatile boolean done = false;
 
-        SendHandler(ProducerRecord<T> record, CountDownLatch executorLatch) {
+        SendHandler(ProducerRecord<?> record, CountDownLatch executorLatch) {
             this.record = record;
             this.groupId = record.groupId();
             this.executorLatch = executorLatch;

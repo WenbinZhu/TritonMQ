@@ -19,10 +19,10 @@ public class GlobalConfig {
 
     public final static String ZkAddr = "localhost:2181";
 
-    public final static String SubscribePath = "/subscribe/";
+    public final static String SubscribePath = "/subscribe";
 
-    public final static String ReplicaPath = "/replica/";
+    public final static String ReplicaPath = "/replica";
 
-    public final static String PrimaryPath = "/primary/";
+    public final static String PrimaryPath = "/primary";
 
 }

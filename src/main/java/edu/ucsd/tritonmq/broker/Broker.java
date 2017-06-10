@@ -1,17 +1,26 @@
 package edu.ucsd.tritonmq.broker;
 
+import com.linecorp.armeria.common.SerializationFormat;
+import com.linecorp.armeria.common.SessionProtocol;
+import com.linecorp.armeria.server.Server;
+import com.linecorp.armeria.server.ServerBuilder;
+import com.linecorp.armeria.server.thrift.THttpService;
 import edu.ucsd.tritonmq.producer.ProducerRecord;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
+import org.eclipse.jetty.util.ConcurrentHashSet;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.Deque;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static edu.ucsd.tritonmq.common.Utils.*;
@@ -21,17 +30,21 @@ import static edu.ucsd.tritonmq.common.Utils.*;
  * Created by dangyi on 5/28/17.
  */
 public class Broker {
-    private int groupId;
+    protected int groupId;
     private int retry;
     private int timeout;
     private int port;
     private String host;
     private String address;
     private String zkAddr;
+    private Server server;
     private LeaderLatch latch;
     private CuratorFramework zkClient;
     private volatile boolean started;
-    private Map<String, Deque<ProducerRecord<?>>> records;
+    protected volatile boolean isPrimary;
+    protected ConcurrentHashSet<String> backups;
+    protected Map<String, Deque<ProducerRecord<?>>> records;
+
 
     /**
      * Create a new broker in a specific group.
@@ -43,6 +56,7 @@ public class Broker {
         int nr = (Integer) configs.get("retry");
         this.groupId = groupId;
         this.started = false;
+        this.isPrimary = false;
         this.host = configs.getProperty("host");
         this.port = (Integer) configs.get("port");
         this.address = host + ":" + port;
@@ -58,45 +72,99 @@ public class Broker {
         register();
     }
 
-    public void register() {
-        // TODO: add listener
+
+    /**
+     * Primary listens to replica come and leave events
+     *
+     */
+    private void addListener() {
+        PathChildrenCacheListener plis = (client, event) -> {
+
+            switch (event.getType()) {
+                case CHILD_ADDED: {
+                    // TODO
+                    break;
+                }
+
+                case CHILD_REMOVED: {
+                    // TODO
+                    break;
+                }
+            }
+        };
 
         try {
-            latch = new LeaderLatch(zkClient, ReplicaPath + String.valueOf(groupId), address);
+            String path = ReplicaPath + String.valueOf(groupId);
+            PathChildrenCache cache = new PathChildrenCache(zkClient, path, false);
+            cache.start();
+            cache.getListenable().addListener(plis);
+        } catch (Exception e) {
+            System.exit(1);
+        }
+    }
+
+    /**
+     * Register self to ZooKeeper and listen to the leader election
+     *
+     */
+    private void register() {
+        try {
+            String path = new File(ReplicaPath, String.valueOf(groupId)).toString();
+
+            if (zkClient.checkExists().forPath(path) == null)
+                zkClient.create().creatingParentContainersIfNeeded().forPath(path);
+
+            latch = new LeaderLatch(zkClient, path, address);
             latch.addListener(new LeaderLatchListener() {
 
                 public void notLeader() {
-                    System.out.println(address + " not leader");
+                    System.out.println("group " + String.valueOf(groupId) + ", " + address + ": not leader");
                 }
 
                 public void isLeader() {
-                    System.out.println(address+ " is leader");
+                    System.out.println("group " + String.valueOf(groupId) + ", " + address + ": is leader");
+                    String path = new File(PrimaryPath, String.valueOf(groupId)).toString();
+
+                    try {
+                        if (zkClient.checkExists().forPath(path) == null)
+                            zkClient.create().creatingParentContainersIfNeeded().forPath(path);
+
+                        zkClient.setData().forPath(path, address.getBytes());
+
+                    } catch (Exception e) {
+                        System.exit(1);
+                    }
+
+                    addListener();
+                    isPrimary = true;
                 }
             });
 
             latch.start();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.exit(1);
         }
     }
 
     /**
      * Start the broker. It should be able to serve requests upon return.
      *
-     * 1. Create a ephemeral node under /groups/1/replica/
-     * 2. Run for leader
-     * 3. If becomes leader
-     *    1. create ephemeral /groups/1/primary
-     *    2. listen for producers asynchronously
-     *    3. listen for new-joined backups
-     * 4. Otherwise, listen for primary asynchronously
      */
     public synchronized void start() {
         if (started)
             return;
 
-        throw new NotImplementedException();
+        register();
+
+        InetSocketAddress addr = new InetSocketAddress(host, port);
+        ServerBuilder sb = new ServerBuilder();
+        sb.port(addr, SessionProtocol.HTTP).serviceAt("/",
+                THttpService.of(new BrokerHandler(this), SerializationFormat.THRIFT_BINARY));
+        server =  sb.build();
+
+        server.start();
+        started = true;
     }
 
     /**

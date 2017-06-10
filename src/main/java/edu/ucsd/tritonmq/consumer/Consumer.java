@@ -9,6 +9,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.zookeeper.CreateMode;
 
+import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -51,7 +52,8 @@ public class Consumer {
     }
 
     private void register(String topic) {
-        String path = SubscribePath + topic + "/" + address;
+        String path = new File(SubscribePath, topic).toString();
+        path = new File(path, address).toString();
 
         try {
             if (!subscription.contains(topic)) {
@@ -66,7 +68,8 @@ public class Consumer {
     }
 
     private void unRegister(String topic) {
-        String path = SubscribePath + topic + "/" + address;
+        String path = new File(SubscribePath, topic).toString();
+        path = new File(path, address).toString();
 
         try {
             if (subscription.contains(topic)) {
@@ -135,12 +138,14 @@ public class Consumer {
         if (started)
             return;
 
-        InetSocketAddress addr = new InetSocketAddress("localhost", port);
+        InetSocketAddress addr = new InetSocketAddress(host, port);
         ServerBuilder sb = new ServerBuilder();
         sb.port(addr, SessionProtocol.HTTP).serviceAt("/deliver",
                 THttpService.of(new RecvThread(records), SerializationFormat.THRIFT_BINARY));
         server =  sb.build();
+
         server.start();
+        started = true;
     }
 
     /**

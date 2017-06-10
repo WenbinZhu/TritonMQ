@@ -13,7 +13,7 @@ public class Producer<T> {
     private int timeout;
     private int maxInFlight;
     private String zkAddr;
-    private SendThread<T> sendThread;
+    private SendThread sendThread;
 
     /**
      * Create a producer
@@ -32,7 +32,7 @@ public class Producer<T> {
         this.zkAddr = configs.getProperty("zkAddr");
         this.retry = Integer.min(5, Integer.max(nr, 0));
         this.maxInFlight = Integer.min(10, Integer.max(mif, 0));
-        this.sendThread = new SendThread<>(timeout, retry, maxInFlight, zkAddr);
+        this.sendThread = new SendThread(timeout, retry, maxInFlight, zkAddr);
 
         sendThread.start();
     }
