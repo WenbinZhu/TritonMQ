@@ -43,7 +43,6 @@ public class SendThread<T> extends Thread {
         this.executors = Executors.newFixedThreadPool(maxInFlight);
         this.primaryClients = new BrokerService.AsyncIface[NumBrokerGroups];
         this.zkClient = initZkClient(Second, 1, this.zkAddr, Second, Second);
-        this.zkClient.start();
 
         initPrimaryListener();
 

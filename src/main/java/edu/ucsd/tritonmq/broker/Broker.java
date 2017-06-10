@@ -51,7 +51,6 @@ public class Broker {
         this.retry = Integer.min(5, Integer.max(nr, 0));
         this.records = new ConcurrentHashMap<>();
         this.zkClient = initZkClient(Second, 1, this.zkAddr, 100, 100);
-        this.zkClient.start();
 
         assert zkClient != null;
         assert zkClient.getState() == CuratorFrameworkState.STARTED;

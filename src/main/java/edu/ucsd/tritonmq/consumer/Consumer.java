@@ -45,7 +45,6 @@ public class Consumer {
         this.subscription = new HashSet<>();
         this.records = new HashMap<>();
         this.zkClient = initZkClient(Second, 1, this.zkAddr, Second, Second);
-        this.zkClient.start();
 
         assert zkClient != null;
         assert zkClient.getState() == CuratorFrameworkState.STARTED;

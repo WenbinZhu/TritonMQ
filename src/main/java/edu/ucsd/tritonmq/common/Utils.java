@@ -20,6 +20,7 @@ public class Utils {
                                     .connectionTimeoutMs(connTimeout)
                                     .retryPolicy(rp).build();
 
+        zkClient.start();
         return zkClient;
     }
 
