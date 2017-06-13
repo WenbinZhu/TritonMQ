@@ -12,6 +12,7 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
+import org.apache.curator.utils.ZKPaths;
 import org.eclipse.jetty.util.ConcurrentHashSet;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -68,8 +69,6 @@ public class Broker {
 
         assert zkClient != null;
         assert zkClient.getState() == CuratorFrameworkState.STARTED;
-
-        register();
     }
 
 
@@ -77,24 +76,30 @@ public class Broker {
      * Primary listens to replica come and leave events
      *
      */
-    private void addListener() {
+    private void addListener(String path) {
         PathChildrenCacheListener plis = (client, event) -> {
 
             switch (event.getType()) {
                 case CHILD_ADDED: {
-                    // TODO
+                    String backup = new String(client.getData().forPath(event.getData().getPath()));
+                    System.out.println(backup);
+
+                    if (!backup.equals(address)) {
+                        new MigrateThread(backup).start();
+                    }
+
                     break;
                 }
 
                 case CHILD_REMOVED: {
-                    // TODO
+                    String backup = ZKPaths.getNodeFromPath(event.getData().getPath());
+                    backups.remove(backup);
                     break;
                 }
             }
         };
 
         try {
-            String path = ReplicaPath + String.valueOf(groupId);
             PathChildrenCache cache = new PathChildrenCache(zkClient, path, false);
             cache.start();
             cache.getListenable().addListener(plis);
@@ -123,19 +128,19 @@ public class Broker {
 
                 public void isLeader() {
                     System.out.println("group " + String.valueOf(groupId) + ", " + address + ": is leader");
-                    String path = new File(PrimaryPath, String.valueOf(groupId)).toString();
+                    String primary = new File(PrimaryPath, String.valueOf(groupId)).toString();
 
                     try {
-                        if (zkClient.checkExists().forPath(path) == null)
-                            zkClient.create().creatingParentContainersIfNeeded().forPath(path);
+                        if (zkClient.checkExists().forPath(primary) == null)
+                            zkClient.create().creatingParentContainersIfNeeded().forPath(primary);
 
-                        zkClient.setData().forPath(path, address.getBytes());
+                        zkClient.setData().forPath(primary, address.getBytes());
 
                     } catch (Exception e) {
                         System.exit(1);
                     }
 
-                    addListener();
+                    addListener(path);
                     isPrimary = true;
                 }
             });
@@ -161,7 +166,7 @@ public class Broker {
         ServerBuilder sb = new ServerBuilder();
         sb.port(addr, SessionProtocol.HTTP).serviceAt("/",
                 THttpService.of(new BrokerHandler(this), SerializationFormat.THRIFT_BINARY));
-        server =  sb.build();
+        server = sb.build();
 
         server.start();
         started = true;

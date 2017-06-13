@@ -33,9 +33,42 @@ public class BrokerTest {
                 configs.put("zkAddr", ZkAddr);
 
                 Broker b = new Broker(0, configs);
+                b.start();
             }
         }).start();
 
-        Thread.sleep(1000);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Properties configs = new Properties();
+                configs.put("retry", 2);
+                configs.put("timeout", 200);
+                configs.put("host", "localhost");
+                configs.put("port", 9002);
+                configs.put("zkAddr", ZkAddr);
+
+                Broker b = new Broker(0, configs);
+                b.start();
+            }
+        }).start();
+
+        Thread.sleep(3000);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Properties configs = new Properties();
+                configs.put("retry", 2);
+                configs.put("timeout", 200);
+                configs.put("host", "localhost");
+                configs.put("port", 9003);
+                configs.put("zkAddr", ZkAddr);
+
+                Broker b = new Broker(0, configs);
+                b.start();
+            }
+        }).start();
+
+        Thread.sleep(5000);
     }
 }
