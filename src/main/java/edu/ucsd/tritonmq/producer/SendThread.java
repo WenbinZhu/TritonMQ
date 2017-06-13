@@ -59,6 +59,7 @@ public class SendThread extends Thread {
         PathChildrenCacheListener plis = (client, event) -> {
 
             switch (event.getType()) {
+                case CHILD_ADDED:
                 case CHILD_UPDATED: {
                     String last = ZKPaths.getNodeFromPath(event.getData().getPath());
                     int groupId = Integer.valueOf(last);
@@ -70,6 +71,7 @@ public class SendThread extends Thread {
 
         String path = new File(PrimaryPath, "").toString();
         primaryMonitor = new PathChildrenCache(zkClient, path, false);
+
         try {
             primaryMonitor.start();
             primaryMonitor.getListenable().addListener(plis);
@@ -77,7 +79,6 @@ public class SendThread extends Thread {
             e.printStackTrace();
         }
     }
-
 
     /**
      * Update the connection to a group primary
@@ -173,12 +174,12 @@ public class SendThread extends Thread {
                     ByteArrayOutputStream bao = new ByteArrayOutputStream();
                     ObjectOutputStream output = new ObjectOutputStream(bao);
                     output.writeObject(record);
-                    byte[] bytes = bao.toByteArray();
+                    ByteBuffer bytes = ByteBuffer.wrap(bao.toByteArray());
 
                     if (primaryClients[groupId] == null)
                         updatePrimary(groupId);
 
-                    primaryClients[groupId].send(ByteBuffer.wrap(bytes), future);
+                    primaryClients[groupId].send(bytes, future);
 
                     future.thenAccept(response -> {
                         if (response.equals(Succ)) {
@@ -208,7 +209,6 @@ public class SendThread extends Thread {
 
             // Should remove then countdown
             futureMap.remove(record);
-            System.out.println(done);
             executorLatch.countDown();
         }
     }

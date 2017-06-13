@@ -71,7 +71,7 @@ public class Producer<T> {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Properties configs = new Properties();
         configs.put("retry", 2);
         configs.put("timeout", 100);
@@ -81,10 +81,10 @@ public class Producer<T> {
         Producer<String> producer = new Producer<>(configs);
         ProducerRecord<String> record1 = new ProducerRecord<>("test topic", "test message");
         ProducerRecord<String> record2 = new ProducerRecord<>("test topic", "test message");
-        ProducerRecord<String> record3 = new ProducerRecord<>("test topic", "test message");
-        ProducerRecord<String> record4 = new ProducerRecord<>("test topic", "test message");
-        ProducerRecord<String> record5 = new ProducerRecord<>("test topic", "test message");
-        ProducerRecord<String> record6 = new ProducerRecord<>("test topic", "test message");
+        // ProducerRecord<String> record3 = new ProducerRecord<>("test topic", "test message");
+        // ProducerRecord<String> record4 = new ProducerRecord<>("test topic", "test message");
+        // ProducerRecord<String> record5 = new ProducerRecord<>("test topic", "test message");
+        // ProducerRecord<String> record6 = new ProducerRecord<>("test topic", "test message");
 
         CompletableFuture<ProducerMetaRecord> future1 = producer.publish(record1);
         CompletableFuture<ProducerMetaRecord> future2 = producer.publish(record2);
@@ -92,9 +92,11 @@ public class Producer<T> {
         future1.thenAccept(meta -> {
             System.out.println(meta.topic() + ", " + meta.succ());
         });
+
         future2.thenAccept(meta -> {
             System.out.println(meta.topic() + ", " + meta.succ());
         });
+
         // producer.publish(record3);
         // producer.publish(record4);
         // producer.publish(record5);

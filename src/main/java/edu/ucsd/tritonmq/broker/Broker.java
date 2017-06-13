@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.util.Deque;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
@@ -44,6 +45,7 @@ public class Broker {
     private volatile boolean started;
     protected volatile boolean isPrimary;
     protected ConcurrentHashSet<String> backups;
+    protected ConcurrentHashMap<UUID, String> requests;
     protected Map<String, Deque<ProducerRecord<?>>> records;
 
 
@@ -65,6 +67,7 @@ public class Broker {
         this.timeout = (Integer) configs.get("timeout");
         this.retry = Integer.min(5, Integer.max(nr, 0));
         this.records = new ConcurrentHashMap<>();
+        this.requests = new ConcurrentHashMap<>();
         this.zkClient = initZkClient(Second, 1, this.zkAddr, 100, 100);
 
         assert zkClient != null;
@@ -82,7 +85,7 @@ public class Broker {
             switch (event.getType()) {
                 case CHILD_ADDED: {
                     String backup = new String(client.getData().forPath(event.getData().getPath()));
-                    System.out.println(backup);
+                    System.out.println(backup + " added to group " + groupId);
 
                     if (!backup.equals(address)) {
                         new MigrateThread(backup).start();

@@ -29,10 +29,10 @@ public class BrokerTest {
                 configs.put("retry", 2);
                 configs.put("timeout", 200);
                 configs.put("host", "localhost");
-                configs.put("port", 9001);
+                configs.put("port", 9007);
                 configs.put("zkAddr", ZkAddr);
 
-                Broker b = new Broker(0, configs);
+                Broker b = new Broker(2, configs);
                 b.start();
             }
         }).start();
@@ -44,10 +44,10 @@ public class BrokerTest {
                 configs.put("retry", 2);
                 configs.put("timeout", 200);
                 configs.put("host", "localhost");
-                configs.put("port", 9002);
+                configs.put("port", 9008);
                 configs.put("zkAddr", ZkAddr);
 
-                Broker b = new Broker(0, configs);
+                Broker b = new Broker(2, configs);
                 b.start();
             }
         }).start();
@@ -61,14 +61,14 @@ public class BrokerTest {
                 configs.put("retry", 2);
                 configs.put("timeout", 200);
                 configs.put("host", "localhost");
-                configs.put("port", 9003);
+                configs.put("port", 9009);
                 configs.put("zkAddr", ZkAddr);
 
-                Broker b = new Broker(0, configs);
+                Broker b = new Broker(2, configs);
                 b.start();
             }
         }).start();
 
-        Thread.sleep(5000);
+        Thread.sleep(100000);
     }
 }
