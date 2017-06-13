@@ -50,7 +50,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             return;
         }
 
-        // TODO: normal handling case
+        // TODO: normal handling case, assign timestamp
     }
 
     @Override
