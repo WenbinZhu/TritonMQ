@@ -74,7 +74,7 @@ public class Producer<T> {
     public static void main(String[] args) throws InterruptedException {
         Properties configs = new Properties();
         configs.put("retry", 2);
-        configs.put("timeout", 100);
+        configs.put("timeout", 200);
         configs.put("maxInFlight", 4);
         configs.put("zkAddr", ZkAddr);
 

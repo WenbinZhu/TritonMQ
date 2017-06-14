@@ -43,10 +43,11 @@ public class Broker {
     private LeaderLatch latch;
     private CuratorFramework zkClient;
     private volatile boolean started;
+    protected volatile long timestamp;
     protected volatile boolean isPrimary;
     protected ConcurrentHashSet<String> backups;
     protected ConcurrentHashMap<UUID, String> requests;
-    protected Map<String, Deque<ProducerRecord<?>>> records;
+    protected Map<String, Deque<BrokerRecord<?>>> records;
 
 
     /**
@@ -60,6 +61,7 @@ public class Broker {
         this.groupId = groupId;
         this.started = false;
         this.isPrimary = false;
+        this.timestamp = (long) 0;
         this.host = configs.getProperty("host");
         this.port = (Integer) configs.get("port");
         this.address = host + ":" + port;
@@ -73,7 +75,6 @@ public class Broker {
         assert zkClient != null;
         assert zkClient.getState() == CuratorFrameworkState.STARTED;
     }
-
 
     /**
      * Primary listens to replica come and leave events
@@ -144,6 +145,7 @@ public class Broker {
                     }
 
                     addListener(path);
+                    timestamp = largestTimeStamp();
                     isPrimary = true;
                 }
             });
@@ -181,5 +183,23 @@ public class Broker {
      */
     public String getListenAddr() {
         throw new NotImplementedException();
+    }
+
+    protected synchronized long largestTimeStamp() {
+        long ts = 0;
+
+        synchronized (records) {
+            for (Map.Entry<String, Deque<BrokerRecord<?>>> entry : records.entrySet()) {
+                for (BrokerRecord<?> record : entry.getValue()) {
+                    ts = Math.max(ts, record.timestamp());
+                }
+            }
+        }
+
+        return ts + 1;
+    }
+
+    protected synchronized long incrementTs() {
+        return timestamp++;
     }
 }

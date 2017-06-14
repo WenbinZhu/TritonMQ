@@ -32,7 +32,7 @@ public class SendThread extends Thread {
     private ExecutorService executors;
     private PathChildrenCache primaryMonitor;
     private BrokerService.AsyncIface[] primaryClients;
-    private ConcurrentLinkedQueue<ProducerRecord<?>> bufferQueue;
+    private LinkedBlockingQueue<ProducerRecord<?>> bufferQueue;
     private Map<ProducerRecord, CompletableFuture<ProducerMetaRecord>> futureMap;
 
     SendThread(int timeout, int retry, int maxInFlight, String zkAddr) {
@@ -41,7 +41,7 @@ public class SendThread extends Thread {
         this.maxInFlight = maxInFlight;
         this.zkAddr = zkAddr;
         this.futureMap = new HashMap<>();
-        this.bufferQueue = new ConcurrentLinkedQueue<>();
+        this.bufferQueue = new LinkedBlockingQueue<>();
         this.executors = Executors.newFixedThreadPool(maxInFlight);
         this.primaryClients = new BrokerService.AsyncIface[NumBrokerGroups];
         this.zkClient = initZkClient(Second, 1, this.zkAddr, Second, Second);
@@ -119,18 +119,18 @@ public class SendThread extends Thread {
                 break;
             }
 
-            for (int i = 0; i < maxInFlight; i++) {
-                ProducerRecord<?> record = bufferQueue.poll();
+            try {
+                for (int i = 0; i < maxInFlight; i++) {
+                    ProducerRecord<?> record = bufferQueue.poll(30, TimeUnit.SECONDS);
 
-                if (record == null) {
-                    executorLatch.countDown();
-                    continue;
+                    if (record == null) {
+                        executorLatch.countDown();
+                        continue;
+                    }
+
+                    executors.execute(new SendHandler(record, executorLatch));
                 }
 
-                executors.execute(new SendHandler(record, executorLatch));
-            }
-
-            try {
                 executorLatch.await();
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -161,7 +161,7 @@ public class SendThread extends Thread {
             this.executorLatch = executorLatch;
         }
 
-        public void done() {
+        public synchronized void done() {
             done = true;
         }
 
@@ -169,6 +169,7 @@ public class SendThread extends Thread {
         public void run() {
             for (int i = 0; i < retry + 1 && !done; i++) {
                 CountDownLatch sendLatch = new CountDownLatch(1);
+
                 try {
                     ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
                     ByteArrayOutputStream bao = new ByteArrayOutputStream();
@@ -182,6 +183,7 @@ public class SendThread extends Thread {
                     primaryClients[groupId].send(bytes, future);
 
                     future.thenAccept(response -> {
+                        System.out.println(response);
                         if (response.equals(Succ)) {
                             done();
                             sendLatch.countDown();

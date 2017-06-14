@@ -33,6 +33,7 @@ public class BrokerTest {
                 configs.put("zkAddr", ZkAddr);
 
                 Broker b = new Broker(2, configs);
+                brokers[0] = b;
                 b.start();
             }
         }).start();
@@ -48,6 +49,7 @@ public class BrokerTest {
                 configs.put("zkAddr", ZkAddr);
 
                 Broker b = new Broker(2, configs);
+                brokers[1] = b;
                 b.start();
             }
         }).start();
@@ -65,6 +67,7 @@ public class BrokerTest {
                 configs.put("zkAddr", ZkAddr);
 
                 Broker b = new Broker(2, configs);
+                brokers[2] = b;
                 b.start();
             }
         }).start();

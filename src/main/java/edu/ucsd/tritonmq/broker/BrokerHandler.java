@@ -9,6 +9,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
+import java.util.Deque;
+import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
@@ -23,7 +26,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
     public void send(ByteBuffer record, AsyncMethodCallback<String> resultHandler) throws TException {
         ByteArrayInputStream bai = null;
         ObjectInputStream input = null;
-        ProducerRecord<?> prd = null;
+        ProducerRecord<?> prod = null;
 
         // Check if primary gets the request
         if (!broker.isPrimary) {
@@ -35,7 +38,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
         try {
             bai = new ByteArrayInputStream(record.array());
             input = new ObjectInputStream(bai);
-            prd = (ProducerRecord<?>) input.readObject();
+            prod = (ProducerRecord<?>) input.readObject();
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -44,13 +47,36 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             close(bai, input);
         }
 
-        // Handle duplicate client requests
-        if (Succ.equals(broker.requests.get(prd.uuid()))) {
-            resultHandler.onComplete(Fail);
-            return;
-        }
+        try {
+            // Handle duplicate client requests
+            synchronized (broker.requests) {
+                String status = broker.requests.get(prod.uuid());
 
-        // TODO: normal handling case, assign timestamp
+                if (status == null) {
+                    broker.requests.put(prod.uuid(), Pend);
+                } else {
+                    resultHandler.onComplete(status);
+                    return;
+                }
+            }
+
+            // Push record into queue
+            String topic = prod.topic();
+            BrokerRecord<?> brod = new BrokerRecord<>(topic, prod.value(), broker.incrementTs());
+
+            synchronized (broker.records) {
+                if (!broker.records.containsKey(topic)) {
+                    broker.records.put(topic, new ConcurrentLinkedDeque<>());
+                }
+            }
+
+            broker.records.get(topic).offer(brod);
+            broker.requests.put(prod.uuid(), Succ);
+            resultHandler.onComplete(Succ);
+
+        } catch (Exception e) {
+            resultHandler.onComplete(Fail);
+        }
     }
 
     @Override
