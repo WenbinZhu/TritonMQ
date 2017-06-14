@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
+import static edu.ucsd.tritonmq.common.Utils.*;
 
 public class BrokerHandler implements BrokerService.AsyncIface {
     private  Broker broker;
@@ -128,17 +129,6 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             resultHandler.onComplete(Succ);
         } catch (Exception e) {
             resultHandler.onComplete(Fail);
-        }
-    }
-
-    private void close(Closeable... resource) {
-        for (Closeable res : resource) {
-            try {
-                if (res != null)
-                    res.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 

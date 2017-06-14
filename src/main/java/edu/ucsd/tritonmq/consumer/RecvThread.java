@@ -9,11 +9,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
-
+import static edu.ucsd.tritonmq.common.Utils.*;
 
 /**
  * Created by Wenbin on 6/5/17.
@@ -27,9 +26,12 @@ public class RecvThread implements ConsumerService.AsyncIface {
 
     @Override
     public void deliver(ByteBuffer byteBuffer, AsyncMethodCallback<String> resultHandler) throws TException {
+        ByteArrayInputStream bis = null;
+        ObjectInputStream input = null;
+
         try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(byteBuffer.array());
-            ObjectInputStream input = new ObjectInputStream(bis);
+            bis = new ByteArrayInputStream(byteBuffer.array());
+            input = new ObjectInputStream(bis);
             ConsumerRecord record = (ConsumerRecord) input.readObject();
             String topic = record.topic();
 
@@ -43,6 +45,8 @@ public class RecvThread implements ConsumerService.AsyncIface {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
             resultHandler.onComplete(Fail);
+        } finally {
+            close(bis, input);
         }
     }
 }

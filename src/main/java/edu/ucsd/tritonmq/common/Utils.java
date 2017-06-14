@@ -5,6 +5,9 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
 public class Utils {
@@ -26,5 +29,16 @@ public class Utils {
 
     public static CuratorFramework initZkClient() {
         return initZkClient(Second, 2, ZkAddr, Second, Second);
+    }
+
+    public static void close(Closeable... resource) {
+        for (Closeable res : resource) {
+            try {
+                if (res != null)
+                    res.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

@@ -121,7 +121,7 @@ public class SendThread extends Thread {
 
             try {
                 for (int i = 0; i < maxInFlight; i++) {
-                    ProducerRecord<?> record = bufferQueue.poll(60, TimeUnit.SECONDS);
+                    ProducerRecord<?> record = bufferQueue.poll(1, TimeUnit.DAYS);
 
                     if (record == null) {
                         i--;
