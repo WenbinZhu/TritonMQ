@@ -183,7 +183,6 @@ public class SendThread extends Thread {
                     primaryClients[groupId].send(bytes, future);
 
                     future.thenAccept(response -> {
-                        System.out.println(response);
                         if (response.equals(Succ)) {
                             done();
                             sendLatch.countDown();

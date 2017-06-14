@@ -45,7 +45,7 @@ public class Producer<T> {
      */
     public CompletableFuture<ProducerMetaRecord> publish(ProducerRecord<T> record) {
         // Find group number
-        int groupId = record.topic().hashCode() % NumBrokerGroups;
+        int groupId = (record.topic().hashCode() & 0x7fffffff) % NumBrokerGroups;
         record.setGroupId(groupId);
 
         // Construct future
@@ -81,13 +81,14 @@ public class Producer<T> {
         Producer<String> producer = new Producer<>(configs);
         ProducerRecord<String> record1 = new ProducerRecord<>("test topic", "test message");
         ProducerRecord<String> record2 = new ProducerRecord<>("test topic", "test message");
-        // ProducerRecord<String> record3 = new ProducerRecord<>("test topic", "test message");
+        ProducerRecord<String> record3 = new ProducerRecord<>("next topic", "test message");
         // ProducerRecord<String> record4 = new ProducerRecord<>("test topic", "test message");
         // ProducerRecord<String> record5 = new ProducerRecord<>("test topic", "test message");
         // ProducerRecord<String> record6 = new ProducerRecord<>("test topic", "test message");
 
         CompletableFuture<ProducerMetaRecord> future1 = producer.publish(record1);
         CompletableFuture<ProducerMetaRecord> future2 = producer.publish(record2);
+        CompletableFuture<ProducerMetaRecord> future3 = producer.publish(record3);
 
         future1.thenAccept(meta -> {
             System.out.println(meta.topic() + ", " + meta.succ());
@@ -97,9 +98,8 @@ public class Producer<T> {
             System.out.println(meta.topic() + ", " + meta.succ());
         });
 
-        // producer.publish(record3);
-        // producer.publish(record4);
-        // producer.publish(record5);
-        // producer.publish(record6);
+        future3.thenAccept(meta -> {
+            System.out.println(meta.topic() + ", " + meta.succ());
+        });
     }
 }
