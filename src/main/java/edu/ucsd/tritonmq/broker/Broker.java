@@ -122,7 +122,7 @@ public class Broker {
             String path = new File(ReplicaPath, String.valueOf(groupId)).toString();
 
             if (zkClient.checkExists().forPath(path) == null)
-                zkClient.create().creatingParentContainersIfNeeded().forPath(path);
+                zkClient.create().creatingParentsIfNeeded().forPath(path);
 
             latch = new LeaderLatch(zkClient, path, address);
             latch.addListener(new LeaderLatchListener() {
@@ -137,7 +137,7 @@ public class Broker {
 
                     try {
                         if (zkClient.checkExists().forPath(primary) == null)
-                            zkClient.create().creatingParentContainersIfNeeded().forPath(primary);
+                            zkClient.create().creatingParentsIfNeeded().forPath(primary);
 
                         zkClient.setData().forPath(primary, address.getBytes());
 
