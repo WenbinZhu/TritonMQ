@@ -10,6 +10,7 @@ import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
@@ -18,9 +19,9 @@ import static edu.ucsd.tritonmq.common.GlobalConfig.*;
  * Created by Wenbin on 6/5/17.
  */
 public class RecvThread implements ConsumerService.AsyncIface {
-    private HashMap<String, Queue<ConsumerRecord<?>>> queue;
+    private HashMap<String, BlockingQueue<ConsumerRecord<?>>> queue;
 
-    RecvThread(HashMap<String, Queue<ConsumerRecord<?>>> queue) {
+    RecvThread(HashMap<String, BlockingQueue<ConsumerRecord<?>>> queue) {
         this.queue = queue;
     }
 

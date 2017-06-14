@@ -32,7 +32,7 @@ public class SendThread extends Thread {
     private ExecutorService executors;
     private PathChildrenCache primaryMonitor;
     private BrokerService.AsyncIface[] primaryClients;
-    private LinkedBlockingQueue<ProducerRecord<?>> bufferQueue;
+    private BlockingQueue<ProducerRecord<?>> bufferQueue;
     private Map<ProducerRecord, CompletableFuture<ProducerMetaRecord>> futureMap;
 
     SendThread(int timeout, int retry, int maxInFlight, String zkAddr) {

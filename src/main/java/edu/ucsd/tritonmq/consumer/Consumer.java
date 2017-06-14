@@ -12,7 +12,9 @@ import org.apache.zookeeper.CreateMode;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static edu.ucsd.tritonmq.common.Utils.*;
@@ -30,7 +32,7 @@ public class Consumer {
     private volatile boolean started;
     private CuratorFramework zkClient;
     private HashSet<String> subscription;
-    private HashMap<String, Queue<ConsumerRecord<?>>> records;
+    private HashMap<String, BlockingQueue<ConsumerRecord<?>>> records;
 
     /**
      * Create a consumer
@@ -58,7 +60,7 @@ public class Consumer {
         try {
             if (!subscription.contains(topic)) {
                 subscription.add(topic);
-                records.put(topic, new ConcurrentLinkedDeque<>());
+                records.put(topic, new LinkedBlockingQueue<>());
                 zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
                 System.out.println("Subscribed to topic: " + topic);
             }
@@ -162,7 +164,7 @@ public class Consumer {
      *
      * @return queue with received records
      */
-    public HashMap<String, Queue<ConsumerRecord<?>>> records() {
+    public HashMap<String, BlockingQueue<ConsumerRecord<?>>> records() {
         return records;
     }
 
@@ -198,7 +200,7 @@ public class Consumer {
 
         consumer.start();
 
-        HashMap<String, Queue<ConsumerRecord<?>>> records = consumer.records();
+        HashMap<String, BlockingQueue<ConsumerRecord<?>>> records = consumer.records();
 
         try {
             while (true) {
