@@ -17,10 +17,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.File;
 import java.net.InetSocketAddress;
-import java.util.Deque;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
@@ -40,12 +37,13 @@ public class Broker {
     private String zkAddr;
     private Server server;
     private LeaderLatch latch;
-    private CuratorFramework zkClient;
     private volatile boolean started;
     protected volatile long timestamp;
+    protected CuratorFramework zkClient;
     protected volatile boolean isPrimary;
-    protected ConcurrentHashSet<String> backups;
-    protected ConcurrentHashMap<UUID, String> requests;
+    protected Set<String> backups;
+    protected Map<UUID, String> requests;
+    protected Map<String, Map<String, Integer>> offsets;
     protected Map<String, Deque<BrokerRecord<?>>> records;
 
 
@@ -69,6 +67,7 @@ public class Broker {
         this.retry = Integer.min(5, Integer.max(nr, 0));
         this.backups = new ConcurrentHashSet<>();
         this.records = new ConcurrentHashMap<>();
+        this.offsets = new ConcurrentHashMap<>();
         this.requests = new ConcurrentHashMap<>();
         this.zkClient = initZkClient(Second, 1, this.zkAddr, 100, 100);
 
@@ -109,6 +108,7 @@ public class Broker {
             cache.start();
             cache.getListenable().addListener(plis);
         } catch (Exception e) {
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -142,6 +142,7 @@ public class Broker {
                         zkClient.setData().forPath(primary, address.getBytes());
 
                     } catch (Exception e) {
+                        e.printStackTrace();
                         System.exit(1);
                     }
 
@@ -154,6 +155,7 @@ public class Broker {
             latch.start();
 
         } catch (Exception e) {
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -175,6 +177,8 @@ public class Broker {
         server = sb.build();
 
         server.start();
+        new DeliverThread(this).start();
+
         started = true;
     }
 

@@ -9,6 +9,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.ZkAddr;
@@ -72,6 +73,7 @@ public class BrokerTest {
             }
         }).start();
 
-        Thread.sleep(100000);
+        CountDownLatch latch = new CountDownLatch(1);
+        latch.await();
     }
 }

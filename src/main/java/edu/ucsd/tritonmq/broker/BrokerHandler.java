@@ -84,8 +84,8 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
             resultHandler.onComplete(Fail);
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -127,6 +127,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
             broker.records.get(brod.topic()).offer(brod);
             resultHandler.onComplete(Succ);
+
         } catch (Exception e) {
             resultHandler.onComplete(Fail);
         }
