@@ -96,7 +96,39 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
     @Override
     public void replicate(ByteBuffer record, AsyncMethodCallback<String> resultHandler) throws TException {
-        resultHandler.onComplete(Succ);
+        ByteArrayInputStream bai = null;
+        ObjectInputStream input = null;
+        BrokerRecord<?> brod = null;
+
+        if (broker.isPrimary) {
+            resultHandler.onError(new Exception("Not backup"));
+            return;
+        }
+
+        // Parse BrokerRecord
+        try {
+            bai = new ByteArrayInputStream(record.array());
+            input = new ObjectInputStream(bai);
+            brod = (BrokerRecord<?>) input.readObject();
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return;
+        } finally {
+            close(bai, input);
+        }
+
+        // Push to backup's queue
+        try {
+            if (!broker.records.containsKey(brod.topic())) {
+                broker.records.put(brod.topic(), new ConcurrentLinkedDeque<>());
+            }
+
+            broker.records.get(brod.topic()).offer(brod);
+            resultHandler.onComplete(Succ);
+        } catch (Exception e) {
+            resultHandler.onComplete(Fail);
+        }
     }
 
     private void close(Closeable... resource) {
@@ -132,7 +164,8 @@ public class BrokerHandler implements BrokerService.AsyncIface {
                         client.replicate(bytes, future);
 
                         future.thenAccept(response -> {
-                            count.increment();
+                            if (response.equals(Succ))
+                                count.increment();
                             threadLatch.countDown();
                         }).exceptionally(cause -> {
                             cause.printStackTrace();
