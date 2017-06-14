@@ -74,7 +74,7 @@ public class Producer<T> {
     public static void main(String[] args) throws InterruptedException {
         Properties configs = new Properties();
         configs.put("retry", 2);
-        configs.put("timeout", 200);
+        configs.put("timeout", 500);
         configs.put("maxInFlight", 4);
         configs.put("zkAddr", ZkAddr);
 
@@ -88,7 +88,6 @@ public class Producer<T> {
 
         CompletableFuture<ProducerMetaRecord> future1 = producer.publish(record1);
         CompletableFuture<ProducerMetaRecord> future2 = producer.publish(record2);
-        CompletableFuture<ProducerMetaRecord> future3 = producer.publish(record3);
 
         future1.thenAccept(meta -> {
             System.out.println(meta.topic() + ", " + meta.succ());
@@ -97,6 +96,10 @@ public class Producer<T> {
         future2.thenAccept(meta -> {
             System.out.println(meta.topic() + ", " + meta.succ());
         });
+
+        Thread.sleep(2000);
+
+        CompletableFuture<ProducerMetaRecord> future3 = producer.publish(record3);
 
         future3.thenAccept(meta -> {
             System.out.println(meta.topic() + ", " + meta.succ());

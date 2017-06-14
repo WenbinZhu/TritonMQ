@@ -121,10 +121,10 @@ public class SendThread extends Thread {
 
             try {
                 for (int i = 0; i < maxInFlight; i++) {
-                    ProducerRecord<?> record = bufferQueue.poll(30, TimeUnit.SECONDS);
+                    ProducerRecord<?> record = bufferQueue.poll(60, TimeUnit.SECONDS);
 
                     if (record == null) {
-                        executorLatch.countDown();
+                        i--;
                         continue;
                     }
 
@@ -187,8 +187,7 @@ public class SendThread extends Thread {
                             done();
                             sendLatch.countDown();
                         }
-                    })
-                    .exceptionally(cause -> {
+                    }).exceptionally(cause -> {
                         sendLatch.countDown();
                         return null;
                     });

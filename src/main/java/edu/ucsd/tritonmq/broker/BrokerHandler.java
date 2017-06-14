@@ -1,17 +1,17 @@
 package edu.ucsd.tritonmq.broker;
 
+import com.linecorp.armeria.client.Clients;
+import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import edu.ucsd.tritonmq.producer.ProducerRecord;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 
-import java.io.ByteArrayInputStream;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.Deque;
-import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
@@ -60,22 +60,32 @@ public class BrokerHandler implements BrokerService.AsyncIface {
                 }
             }
 
-            // Push record into queue
-            String topic = prod.topic();
-            BrokerRecord<?> brod = new BrokerRecord<>(topic, prod.value(), broker.incrementTs());
+            synchronized (this) {
+                // Push record into queue
+                String topic = prod.topic();
+                BrokerRecord<?> brod = new BrokerRecord<>(topic, prod.value(), broker.incrementTs());
 
-            synchronized (broker.records) {
-                if (!broker.records.containsKey(topic)) {
-                    broker.records.put(topic, new ConcurrentLinkedDeque<>());
+                synchronized (broker.backups) {
+                    if (!getBackupResponse(brod)) {
+                        resultHandler.onComplete(Fail);
+                        return;
+                    }
+
+                    if (!broker.records.containsKey(topic)) {
+                        broker.records.put(topic, new ConcurrentLinkedDeque<>());
+                    }
+
+                    broker.records.get(topic).offer(brod);
+                    broker.requests.put(prod.uuid(), Succ);
+
+                    resultHandler.onComplete(Succ);
                 }
             }
 
-            broker.records.get(topic).offer(brod);
-            broker.requests.put(prod.uuid(), Succ);
-            resultHandler.onComplete(Succ);
-
         } catch (Exception e) {
+            e.printStackTrace();
             resultHandler.onComplete(Fail);
+            System.exit(1);
         }
     }
 
@@ -86,7 +96,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
     @Override
     public void replicate(ByteBuffer record, AsyncMethodCallback<String> resultHandler) throws TException {
-
+        resultHandler.onComplete(Succ);
     }
 
     private void close(Closeable... resource) {
@@ -97,6 +107,61 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private boolean getBackupResponse(BrokerRecord<?> record) throws Exception {
+        int size = broker.backups.size();
+        Count count = new Count();
+        CountDownLatch latch = new CountDownLatch(size);
+        ExecutorService executors = Executors.newFixedThreadPool(size);
+        ByteArrayOutputStream bao = new ByteArrayOutputStream();
+        ObjectOutputStream output = new ObjectOutputStream(bao);
+        output.writeObject(record);
+        ByteBuffer bytes = ByteBuffer.wrap(bao.toByteArray());
+
+        for (String backup : broker.backups) {
+            executors.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        CountDownLatch threadLatch = new CountDownLatch(1);
+                        String backupAddr = "tbinary+http://" + backup;
+                        ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
+                        BrokerService.AsyncIface client = Clients.newClient(backupAddr, BrokerService.AsyncIface.class);
+                        client.replicate(bytes, future);
+
+                        future.thenAccept(response -> {
+                            count.increment();
+                            threadLatch.countDown();
+                        }).exceptionally(cause -> {
+                            cause.printStackTrace();
+                            count.increment();
+                            threadLatch.countDown();
+                            return null;
+                        });
+
+                        threadLatch.await();
+                        latch.countDown();
+
+                    } catch (Exception e) {
+                        latch.countDown();
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+
+        latch.await();
+
+        return count.count == size;
+    }
+
+    private class Count {
+        volatile int count = 0;
+
+        synchronized void increment() {
+            count++;
         }
     }
 }

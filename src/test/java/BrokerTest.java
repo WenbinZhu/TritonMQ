@@ -29,7 +29,7 @@ public class BrokerTest {
                 configs.put("retry", 2);
                 configs.put("timeout", 200);
                 configs.put("host", "localhost");
-                configs.put("port", 9007);
+                configs.put("port", 9006);
                 configs.put("zkAddr", ZkAddr);
 
                 Broker b = new Broker(2, configs);
@@ -43,9 +43,9 @@ public class BrokerTest {
             public void run() {
                 Properties configs = new Properties();
                 configs.put("retry", 2);
-                configs.put("timeout", 200);
+                configs.put("timeout", 500);
                 configs.put("host", "localhost");
-                configs.put("port", 9008);
+                configs.put("port", 9007);
                 configs.put("zkAddr", ZkAddr);
 
                 Broker b = new Broker(2, configs);
@@ -54,7 +54,7 @@ public class BrokerTest {
             }
         }).start();
 
-        Thread.sleep(3000);
+        Thread.sleep(500);
 
         new Thread(new Runnable() {
             @Override
@@ -63,7 +63,7 @@ public class BrokerTest {
                 configs.put("retry", 2);
                 configs.put("timeout", 200);
                 configs.put("host", "localhost");
-                configs.put("port", 9009);
+                configs.put("port", 9008);
                 configs.put("zkAddr", ZkAddr);
 
                 Broker b = new Broker(2, configs);

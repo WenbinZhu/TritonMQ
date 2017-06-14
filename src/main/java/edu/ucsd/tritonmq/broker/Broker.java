@@ -5,7 +5,6 @@ import com.linecorp.armeria.common.SessionProtocol;
 import com.linecorp.armeria.server.Server;
 import com.linecorp.armeria.server.ServerBuilder;
 import com.linecorp.armeria.server.thrift.THttpService;
-import edu.ucsd.tritonmq.producer.ProducerRecord;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
@@ -68,6 +67,7 @@ public class Broker {
         this.zkAddr = configs.getProperty("zkAddr");
         this.timeout = (Integer) configs.get("timeout");
         this.retry = Integer.min(5, Integer.max(nr, 0));
+        this.backups = new ConcurrentHashSet<>();
         this.records = new ConcurrentHashMap<>();
         this.requests = new ConcurrentHashMap<>();
         this.zkClient = initZkClient(Second, 1, this.zkAddr, 100, 100);
@@ -89,6 +89,7 @@ public class Broker {
                     System.out.println(backup + " added to group " + groupId);
 
                     if (!backup.equals(address)) {
+                        backups.add(backup);
                         new MigrateThread(backup).start();
                     }
 
