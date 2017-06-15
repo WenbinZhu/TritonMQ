@@ -47,22 +47,27 @@ public class ConsumerApp {
         for (int i = 0; i < topicCount; i++) {
             String topic = "topic" + i;
             consumer.subscribe(topic);
-
-            threads[i] = new Thread(() -> {
-                while (true) {
-                    try {
-                        ConsumerRecord<?> record = records.get(topic).poll(30, TimeUnit.SECONDS);
-                        if (record != null) {
-                            String value = (String) record.value();
-                            System.out.println("[" + topic + "] " + value.substring(0, 10));
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        break;
-                    }
-                }
-            });
-            threads[i].start();
         }
+
+        // for (int i = 0; i < topicCount; i++) {
+        //     String topic = "topic" + i;
+        //     consumer.subscribe(topic);
+        //
+        //     threads[i] = new Thread(() -> {
+        //         while (true) {
+        //             try {
+        //                 ConsumerRecord<?> record = records.get(topic).poll(30, TimeUnit.SECONDS);
+        //                 if (record != null) {
+        //                     String value = (String) record.value();
+        //                     System.out.println("[" + topic + "] " + value.substring(0, 10));
+        //                 }
+        //             } catch (InterruptedException e) {
+        //                 e.printStackTrace();
+        //                 break;
+        //             }
+        //         }
+        //     });
+        //     threads[i].start();
+        // }
     }
 }

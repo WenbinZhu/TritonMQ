@@ -13,12 +13,12 @@ import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.utils.ZKPaths;
 import org.eclipse.jetty.util.ConcurrentHashSet;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static edu.ucsd.tritonmq.common.Utils.*;
@@ -43,7 +43,7 @@ public class Broker {
     protected volatile boolean isPrimary;
     protected Set<String> backups;
     protected Map<UUID, String> requests;
-    protected Map<String, Deque<BrokerRecord<?>>> records;
+    protected Map<String, ConcurrentSkipListMap<Long, BrokerRecord<?>>> records;
 
 
     /**
@@ -188,10 +188,8 @@ public class Broker {
         long ts = 0;
 
         synchronized (records) {
-            for (Map.Entry<String, Deque<BrokerRecord<?>>> entry : records.entrySet()) {
-                for (BrokerRecord<?> record : entry.getValue()) {
-                    ts = Math.max(ts, record.timestamp());
-                }
+            for (Map.Entry<String, ConcurrentSkipListMap<Long, BrokerRecord<?>>> entry : records.entrySet()) {
+                ts = Math.max(ts, entry.getValue().lastKey());
             }
         }
 

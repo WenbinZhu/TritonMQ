@@ -72,10 +72,10 @@ public class BrokerHandler implements BrokerService.AsyncIface {
                     }
 
                     if (!broker.records.containsKey(topic)) {
-                        broker.records.put(topic, new ConcurrentLinkedDeque<>());
+                        broker.records.put(topic, new ConcurrentSkipListMap<>());
                     }
 
-                    broker.records.get(topic).offer(brod);
+                    broker.records.get(topic).put(brod.timestamp(), brod);
                     broker.requests.put(prod.uuid(), Succ);
 
                     resultHandler.onComplete(Succ);
@@ -121,10 +121,10 @@ public class BrokerHandler implements BrokerService.AsyncIface {
         // Push to backup's queue
         try {
             if (!broker.records.containsKey(brod.topic())) {
-                broker.records.put(brod.topic(), new ConcurrentLinkedDeque<>());
+                broker.records.put(brod.topic(), new ConcurrentSkipListMap<>());
             }
 
-            broker.records.get(brod.topic()).offer(brod);
+            broker.records.get(brod.topic()).put(brod.timestamp(), brod);
             resultHandler.onComplete(Succ);
 
         } catch (Exception e) {

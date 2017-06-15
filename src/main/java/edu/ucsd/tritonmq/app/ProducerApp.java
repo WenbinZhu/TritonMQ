@@ -20,13 +20,13 @@ public class ProducerApp {
 
         configs.put("retry", 2);
         configs.put("timeout", 500);
-        configs.put("maxInFlight", 4);
+        configs.put("maxInFlight", 1);
         configs.put("zkAddr", ZkAddr);
 
-        configs.put("recordCount", 100);
+        configs.put("recordCount", 30);
         configs.put("topicCount", 10);
         configs.put("recordSize", 100);
-        configs.put("interval", 100);
+        configs.put("interval", 50);
 
         for (String arg : args) {
             if (arg.substring(0, 2).equals("--")) {

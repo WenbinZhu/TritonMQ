@@ -16,13 +16,11 @@ import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 public class DeliverThread extends Thread {
     private Broker broker;
     private Map<String, Map<String, Long>> offsets;
-    private Map<OffsetKey, Iterator<BrokerRecord<?>>> offsetInfo;
     private ExecutorService executors;
 
     DeliverThread(Broker broker) {
         this.broker = broker;
         this.offsets = new ConcurrentHashMap<>();
-        this.offsetInfo = new ConcurrentHashMap<>();
         this.executors = Executors.newCachedThreadPool();
     }
 
@@ -95,12 +93,12 @@ public class DeliverThread extends Thread {
     private class SendHandler extends Thread {
         private String topic;
         private String consumer;
-        private Deque<BrokerRecord<?>> queue;
+        private ConcurrentSkipListMap<Long, BrokerRecord<?>> skipList;
 
         SendHandler(String topic, String consumer) {
             this.topic = topic;
             this.consumer = consumer;
-            this.queue = broker.records.get(topic);
+            this.skipList = broker.records.get(topic);
         }
 
         @Override
@@ -109,21 +107,22 @@ public class DeliverThread extends Thread {
                 try {
                     CountDownLatch latch = new CountDownLatch(1);
                     Long offset = offsets.get(topic).get(consumer);
-                    OffsetKey key = new OffsetKey(topic, consumer, offset);
                     assert offset != null;
 
-                    if (offsetInfo.get(key) == null) {
-                        resetOffset(offset, key);
+                    Map.Entry<Long, BrokerRecord<?>> next;
+
+                    if (offset == 0) {
+                        next = skipList.firstEntry();
+                    } else {
+                        next = skipList.higherEntry(offset);
                     }
 
-                    Iterator<BrokerRecord<?>> iter = offsetInfo.get(key);
-
-                    if (!iter.hasNext()) {
-                        Thread.sleep(100);
+                    if (next == null) {
+                        Thread.sleep(20);
                         continue;
                     }
 
-                    BrokerRecord<?> brod = iter.next();
+                    BrokerRecord<?> brod = next.getValue();
                     ConsumerRecord<?> record = new ConsumerRecord<>(brod.topic(), brod.value());
                     ByteArrayOutputStream bao = new ByteArrayOutputStream();
                     ObjectOutputStream output = new ObjectOutputStream(bao);
@@ -142,13 +141,12 @@ public class DeliverThread extends Thread {
                         }
                     }).exceptionally(cause -> {
                         // cause.printStackTrace();
-                        resetOffset(offset, key);
                         latch.countDown();
                         return null;
                     });
 
                     latch.await();
-                    Thread.sleep(100);
+                    Thread.sleep(20);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -159,18 +157,6 @@ public class DeliverThread extends Thread {
 
         private void updateOffset(long timestamp) {
             offsets.get(topic).put(consumer, timestamp);
-        }
-
-        private void resetOffset(long offset, OffsetKey key) {
-            offsetInfo.put(key, queue.iterator());
-            Iterator<BrokerRecord<?>> it = queue.iterator();
-
-            while (offset != 0 && it.hasNext()) {
-                if (it.next().timestamp() == offset) {
-                    offsetInfo.put(key, it);
-                    break;
-                }
-            }
         }
     }
 }
