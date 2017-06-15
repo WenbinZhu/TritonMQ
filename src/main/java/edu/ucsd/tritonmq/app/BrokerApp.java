@@ -37,6 +37,5 @@ public class BrokerApp {
         Broker broker = new Broker((Integer)configs.get("groupId"), configs);
 
         broker.start();
-        broker.wait();
     }
 }

@@ -42,6 +42,8 @@ public class ConsumerApp {
         Thread[] threads = new Thread[topicCount];
         HashMap<String, BlockingQueue<ConsumerRecord<?>>> records = consumer.records();
 
+        consumer.start();
+
         for (int i = 0; i < topicCount; i++) {
             String topic = "topic" + i;
             consumer.subscribe(topic);
@@ -61,10 +63,6 @@ public class ConsumerApp {
                 }
             });
             threads[i].start();
-        }
-
-        for (int i = 0; i < topicCount; i++) {
-            threads[i].join();
         }
     }
 }
