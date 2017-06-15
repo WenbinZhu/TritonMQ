@@ -155,8 +155,17 @@ public class DeliverThread extends Thread {
             }
         }
 
-        private void updateOffset(long timestamp) {
-            offsets.get(topic).put(consumer, timestamp);
+        private void updateOffset(Long timestamp) {
+            String topicPath = new File(SubscribePath, topic).toString();
+            String consumerPath = new File(topicPath, consumer).toString();
+
+            try {
+                broker.zkClient.setData().forPath(consumerPath, timestamp.toString().getBytes());
+                offsets.get(topic).put(consumer, timestamp);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
         }
     }
 }

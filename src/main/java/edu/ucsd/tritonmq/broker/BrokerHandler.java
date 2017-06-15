@@ -3,13 +3,11 @@ package edu.ucsd.tritonmq.broker;
 import com.linecorp.armeria.client.Clients;
 import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import edu.ucsd.tritonmq.producer.ProducerRecord;
-import io.netty.util.internal.shaded.org.jctools.queues.ConcurrentCircularArrayQueue;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
 import java.util.concurrent.*;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
@@ -60,26 +58,21 @@ public class BrokerHandler implements BrokerService.AsyncIface {
                 }
             }
 
-            synchronized (this) {
+            String topic = prod.topic();
+            BrokerRecord<?> brod = new BrokerRecord<>(topic, prod.value(), broker.incrementTs());
+
+            synchronized (broker.backups) {
+                multicast(brod);
+
                 // Push record into queue
-                String topic = prod.topic();
-                BrokerRecord<?> brod = new BrokerRecord<>(topic, prod.value(), broker.incrementTs());
-
-                synchronized (broker.backups) {
-                    if (!getBackupResponse(brod)) {
-                        resultHandler.onComplete(Fail);
-                        return;
-                    }
-
-                    if (!broker.records.containsKey(topic)) {
-                        broker.records.put(topic, new ConcurrentSkipListMap<>());
-                    }
-
-                    broker.records.get(topic).put(brod.timestamp(), brod);
-                    broker.requests.put(prod.uuid(), Succ);
-
-                    resultHandler.onComplete(Succ);
+                if (!broker.records.containsKey(topic)) {
+                    broker.records.put(topic, new ConcurrentSkipListMap<>());
                 }
+
+                broker.records.get(topic).put(brod.timestamp(), brod);
+                broker.requests.put(prod.uuid(), Succ);
+
+                resultHandler.onComplete(Succ);
             }
 
         } catch (Exception e) {
@@ -87,11 +80,6 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             e.printStackTrace();
             System.exit(1);
         }
-    }
-
-    @Override
-    public void migrate(ByteBuffer record, AsyncMethodCallback<String> resultHandler) throws TException {
-
     }
 
     @Override
@@ -112,6 +100,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             brod = (BrokerRecord<?>) input.readObject();
 
         } catch (IOException | ClassNotFoundException e) {
+            resultHandler.onError(new Exception("Invalid record"));
             e.printStackTrace();
             return;
         } finally {
@@ -132,15 +121,14 @@ public class BrokerHandler implements BrokerService.AsyncIface {
         }
     }
 
-    private boolean getBackupResponse(BrokerRecord<?> record) throws Exception {
+    private void multicast(BrokerRecord<?> record) throws Exception {
         int size = broker.backups.size();
 
         // No backup
         if (size == 0) {
-            return true;
+            return;
         }
 
-        Count count = new Count();
         CountDownLatch latch = new CountDownLatch(size);
         ExecutorService executors = Executors.newFixedThreadPool(size);
         ByteArrayOutputStream bao = new ByteArrayOutputStream();
@@ -161,11 +149,9 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
                         future.thenAccept(response -> {
                             if (response.equals(Succ))
-                                count.increment();
                             threadLatch.countDown();
                         }).exceptionally(cause -> {
                             cause.printStackTrace();
-                            count.increment();
                             threadLatch.countDown();
                             return null;
                         });
@@ -183,8 +169,6 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
         latch.await();
         executors.shutdownNow();
-
-        return count.count == size;
     }
 
     private class Count {

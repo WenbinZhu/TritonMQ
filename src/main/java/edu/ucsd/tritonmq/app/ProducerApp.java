@@ -26,7 +26,7 @@ public class ProducerApp {
         configs.put("recordCount", 30);
         configs.put("topicCount", 10);
         configs.put("recordSize", 100);
-        configs.put("interval", 50);
+        configs.put("interval", 100);
 
         for (String arg : args) {
             if (arg.substring(0, 2).equals("--")) {

@@ -87,7 +87,7 @@ public class Broker {
 
                     if (!backup.equals(address)) {
                         backups.add(backup);
-                        new MigrateThread(backup).start();
+                        new MigrateThread(this, backup).start();
                     }
 
                     break;
@@ -148,7 +148,6 @@ public class Broker {
                     timestamp = largestTimeStamp();
                     isPrimary = true;
                     spawnDeliverThread();
-
                 }
             });
 
@@ -182,6 +181,7 @@ public class Broker {
 
         server.start();
         started = true;
+        new PurgeThread(this).start();
     }
 
     protected synchronized long largestTimeStamp() {
@@ -197,6 +197,6 @@ public class Broker {
     }
 
     protected synchronized long incrementTs() {
-        return timestamp++;
+        return ++timestamp;
     }
 }
