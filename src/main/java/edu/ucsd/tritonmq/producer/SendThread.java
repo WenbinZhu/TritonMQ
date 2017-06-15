@@ -169,11 +169,13 @@ public class SendThread extends Thread {
         public void run() {
             for (int i = 0; i < retry + 1 && !done; i++) {
                 CountDownLatch sendLatch = new CountDownLatch(1);
+                ByteArrayOutputStream bao = null;
+                ObjectOutputStream output = null;
 
                 try {
                     ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
-                    ByteArrayOutputStream bao = new ByteArrayOutputStream();
-                    ObjectOutputStream output = new ObjectOutputStream(bao);
+                    bao = new ByteArrayOutputStream();
+                    output = new ObjectOutputStream(bao);
                     output.writeObject(record);
                     ByteBuffer bytes = ByteBuffer.wrap(bao.toByteArray());
 
@@ -196,6 +198,8 @@ public class SendThread extends Thread {
 
                 } catch (Exception e) {
                     e.printStackTrace();
+                } finally {
+                    closeResource(bao, output);
                 }
             }
 

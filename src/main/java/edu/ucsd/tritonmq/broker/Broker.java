@@ -184,14 +184,6 @@ public class Broker {
         started = true;
     }
 
-    /**
-     *
-     * @return the address this broker listens
-     */
-    public String getListenAddr() {
-        throw new NotImplementedException();
-    }
-
     protected synchronized long largestTimeStamp() {
         long ts = 0;
 

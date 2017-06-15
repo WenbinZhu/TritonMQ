@@ -80,7 +80,7 @@ public class Producer<T> {
 
         Producer<String> producer = new Producer<>(configs);
         ProducerRecord<String> record1 = new ProducerRecord<>("test topic", "test message");
-        ProducerRecord<String> record2 = new ProducerRecord<>("test topic", "test message");
+        ProducerRecord<String> record2 = new ProducerRecord<>("haha", "test message");
         ProducerRecord<String> record3 = new ProducerRecord<>("next topic", "test message");
         ProducerRecord<String> record4 = new ProducerRecord<>("test topic", "test message");
         // ProducerRecord<String> record5 = new ProducerRecord<>("test topic", "test message");

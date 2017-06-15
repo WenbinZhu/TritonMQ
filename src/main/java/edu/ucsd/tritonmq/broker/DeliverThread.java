@@ -119,7 +119,7 @@ public class DeliverThread extends Thread {
                     Iterator<BrokerRecord<?>> iter = offsetInfo.get(key);
 
                     if (!iter.hasNext()) {
-                        Thread.sleep(20);
+                        Thread.sleep(100);
                         continue;
                     }
 
@@ -148,6 +148,7 @@ public class DeliverThread extends Thread {
                     });
 
                     latch.await();
+                    Thread.sleep(100);
 
                 } catch (Exception e) {
                     e.printStackTrace();

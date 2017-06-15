@@ -3,15 +3,14 @@ package edu.ucsd.tritonmq.broker;
 import com.linecorp.armeria.client.Clients;
 import com.linecorp.armeria.common.thrift.ThriftCompletableFuture;
 import edu.ucsd.tritonmq.producer.ProducerRecord;
+import io.netty.util.internal.shaded.org.jctools.queues.ConcurrentCircularArrayQueue;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.ArrayDeque;
+import java.util.concurrent.*;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static edu.ucsd.tritonmq.common.Utils.*;
@@ -45,7 +44,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             e.printStackTrace();
             return;
         } finally {
-            close(bai, input);
+            closeResource(bai, input);
         }
 
         try {
@@ -116,7 +115,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             e.printStackTrace();
             return;
         } finally {
-            close(bai, input);
+            closeResource(bai, input);
         }
 
         // Push to backup's queue
@@ -183,6 +182,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
         }
 
         latch.await();
+        executors.shutdownNow();
 
         return count.count == size;
     }

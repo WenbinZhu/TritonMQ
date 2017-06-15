@@ -31,7 +31,7 @@ public class Utils {
         return initZkClient(Second, 2, ZkAddr, Second, Second);
     }
 
-    public static void close(Closeable... resource) {
+    public static void closeResource(Closeable... resource) {
         for (Closeable res : resource) {
             try {
                 if (res != null)

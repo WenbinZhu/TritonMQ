@@ -47,7 +47,7 @@ public class RecvThread implements ConsumerService.AsyncIface {
             e.printStackTrace();
             resultHandler.onComplete(Fail);
         } finally {
-            close(bis, input);
+            closeResource(bis, input);
         }
     }
 }
