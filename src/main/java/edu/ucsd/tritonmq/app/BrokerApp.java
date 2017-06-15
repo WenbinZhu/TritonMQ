@@ -13,8 +13,8 @@ public class BrokerApp {
     public static void main(String[] args) throws InterruptedException {
         Properties configs = new Properties();
 
-        configs.put("retry", 2);
-        configs.put("timeout", 200);
+        configs.put("retry", 1);
+        configs.put("timeout", 1000);
         configs.put("host", "localhost");
         configs.put("port", 9006);
         configs.put("zkAddr", ZkAddr);

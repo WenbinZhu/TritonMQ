@@ -13,7 +13,6 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;

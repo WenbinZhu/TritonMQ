@@ -29,8 +29,6 @@ import static edu.ucsd.tritonmq.common.Utils.*;
  */
 public class Broker {
     protected int groupId;
-    private int retry;
-    private int timeout;
     private int port;
     private String host;
     private String address;
@@ -38,6 +36,8 @@ public class Broker {
     private Server server;
     private LeaderLatch latch;
     private volatile boolean started;
+    protected int retry;
+    protected int timeout;
     protected volatile long timestamp;
     protected CuratorFramework zkClient;
     protected volatile boolean isPrimary;

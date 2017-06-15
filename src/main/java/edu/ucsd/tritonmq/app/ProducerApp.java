@@ -20,7 +20,7 @@ public class ProducerApp {
 
         configs.put("retry", 2);
         configs.put("timeout", 500);
-        configs.put("maxInFlight", 1);
+        configs.put("maxInFlight", 4);
         configs.put("zkAddr", ZkAddr);
 
         configs.put("recordCount", 30);

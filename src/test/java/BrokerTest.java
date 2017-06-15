@@ -28,7 +28,7 @@ public class BrokerTest {
             public void run() {
                 Properties configs = new Properties();
                 configs.put("retry", 2);
-                configs.put("timeout", 200);
+                configs.put("timeout", 1000);
                 configs.put("host", "localhost");
                 configs.put("port", 9006);
                 configs.put("zkAddr", ZkAddr);
@@ -44,7 +44,7 @@ public class BrokerTest {
             public void run() {
                 Properties configs = new Properties();
                 configs.put("retry", 2);
-                configs.put("timeout", 500);
+                configs.put("timeout", 1000);
                 configs.put("host", "localhost");
                 configs.put("port", 9007);
                 configs.put("zkAddr", ZkAddr);
@@ -62,7 +62,7 @@ public class BrokerTest {
             public void run() {
                 Properties configs = new Properties();
                 configs.put("retry", 2);
-                configs.put("timeout", 200);
+                configs.put("timeout", 1000);
                 configs.put("host", "localhost");
                 configs.put("port", 9008);
                 configs.put("zkAddr", ZkAddr);

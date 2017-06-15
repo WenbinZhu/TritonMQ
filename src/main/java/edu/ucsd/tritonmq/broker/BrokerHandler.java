@@ -22,6 +22,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
     @Override
     public void send(ByteBuffer record, AsyncMethodCallback<String> resultHandler) throws TException {
+        int attempt;
         ByteArrayInputStream bai = null;
         ObjectInputStream input = null;
         ProducerRecord<?> prod = null;
@@ -61,18 +62,25 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             String topic = prod.topic();
             BrokerRecord<?> brod = new BrokerRecord<>(topic, prod.value(), broker.incrementTs());
 
-            synchronized (broker.backups) {
-                multicast(brod);
+            for (attempt = 0; attempt < broker.retry + 1; attempt++) {
+                if (getBackupResponse(brod)) {
+                    // Push record into queue
+                    synchronized (broker.records) {
+                        if (!broker.records.containsKey(topic)) {
+                            broker.records.put(topic, new ConcurrentSkipListMap<>());
+                        }
+                    }
 
-                // Push record into queue
-                if (!broker.records.containsKey(topic)) {
-                    broker.records.put(topic, new ConcurrentSkipListMap<>());
+                    broker.records.get(topic).put(brod.timestamp(), brod);
+                    broker.requests.put(prod.uuid(), Succ);
+
+                    resultHandler.onComplete(Succ);
+                    break;
                 }
+            }
 
-                broker.records.get(topic).put(brod.timestamp(), brod);
-                broker.requests.put(prod.uuid(), Succ);
-
-                resultHandler.onComplete(Succ);
+            if (attempt >= broker.retry + 1) {
+                resultHandler.onComplete(Fail);
             }
 
         } catch (Exception e) {
@@ -109,8 +117,10 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
         // Push to backup's queue
         try {
-            if (!broker.records.containsKey(brod.topic())) {
-                broker.records.put(brod.topic(), new ConcurrentSkipListMap<>());
+            synchronized (broker.records) {
+                if (!broker.records.containsKey(brod.topic())) {
+                    broker.records.put(brod.topic(), new ConcurrentSkipListMap<>());
+                }
             }
 
             broker.records.get(brod.topic()).put(brod.timestamp(), brod);
@@ -121,57 +131,59 @@ public class BrokerHandler implements BrokerService.AsyncIface {
         }
     }
 
-    private void multicast(BrokerRecord<?> record) throws Exception {
-        int size = broker.backups.size();
+    private boolean getBackupResponse(BrokerRecord<?> record) throws Exception {
+        synchronized (broker.backups) {
+            int size = broker.backups.size();
 
-        // No backup
-        if (size == 0) {
-            return;
-        }
+            // No backupS
+            if (size == 0) {
+                return true;
+            }
 
-        CountDownLatch latch = new CountDownLatch(size);
-        ExecutorService executors = Executors.newFixedThreadPool(size);
-        ByteArrayOutputStream bao = new ByteArrayOutputStream();
-        ObjectOutputStream output = new ObjectOutputStream(bao);
-        output.writeObject(record);
-        ByteBuffer bytes = ByteBuffer.wrap(bao.toByteArray());
+            Counter counter = new Counter();
+            CountDownLatch latch = new CountDownLatch(size);
+            ExecutorService executors = Executors.newFixedThreadPool(size);
+            ByteArrayOutputStream bao = new ByteArrayOutputStream();
+            ObjectOutputStream output = new ObjectOutputStream(bao);
+            output.writeObject(record);
+            ByteBuffer bytes = ByteBuffer.wrap(bao.toByteArray());
 
-        for (String backup : broker.backups) {
-            executors.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        CountDownLatch threadLatch = new CountDownLatch(1);
-                        String backupAddr = "tbinary+http://" + backup;
-                        ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
-                        BrokerService.AsyncIface client = Clients.newClient(backupAddr, BrokerService.AsyncIface.class);
-                        client.replicate(bytes, future);
+            for (String backup : broker.backups) {
+                executors.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            String backupAddr = "tbinary+http://" + backup;
+                            ThriftCompletableFuture<String> future = new ThriftCompletableFuture<>();
+                            BrokerService.AsyncIface client = Clients.newClient(backupAddr, BrokerService.AsyncIface.class);
+                            client.replicate(bytes, future);
 
-                        future.thenAccept(response -> {
-                            if (response.equals(Succ))
-                            threadLatch.countDown();
-                        }).exceptionally(cause -> {
-                            cause.printStackTrace();
-                            threadLatch.countDown();
-                            return null;
-                        });
+                            future.thenAccept(response -> {
+                                if (response.equals(Succ))
+                                    counter.increment();
+                                latch.countDown();
+                            }).exceptionally(cause -> {
+                                // cause.printStackTrace();
+                                latch.countDown();
+                                return null;
+                            });
 
-                        threadLatch.await();
-                        latch.countDown();
-
-                    } catch (Exception e) {
-                        latch.countDown();
-                        e.printStackTrace();
+                        } catch (Exception e) {
+                            latch.countDown();
+                            e.printStackTrace();
+                        }
                     }
-                }
-            });
-        }
+                });
+            }
 
-        latch.await();
-        executors.shutdownNow();
+            latch.await(broker.timeout, TimeUnit.MILLISECONDS);
+            executors.shutdownNow();
+
+            return counter.count == size;
+        }
     }
 
-    private class Count {
+    private class Counter {
         volatile int count = 0;
 
         synchronized void increment() {
