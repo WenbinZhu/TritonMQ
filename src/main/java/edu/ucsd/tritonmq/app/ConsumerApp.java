@@ -23,7 +23,7 @@ public class ConsumerApp {
         configs.put("port", 5001);
         configs.put("zkAddr", ZkAddr);
 
-        configs.put("topicCount", 10);
+        configs.put("topicCount", 15);
 
 
         for (String arg : args) {

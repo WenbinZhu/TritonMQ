@@ -24,6 +24,7 @@ public class ProducerApp {
         configs.put("recordCount", 100);
         configs.put("topicCount", 10);
         configs.put("recordSize", 100);
+        configs.put("interval", 0);
 
         for (String arg : args) {
             if (arg.substring(0, 2).equals("--")) {
@@ -40,6 +41,7 @@ public class ProducerApp {
         int recordCount = (Integer) configs.get("recordCount");
         int topicCount = (Integer) configs.get("topicCount");
         int recordSize = (Integer) configs.get("recordSize");
+        int interval = (Integer) configs.get("interval");
 
         for (int i = 0; i < recordCount; i++) {
             for (int j = 0; j < topicCount; j++) {
@@ -48,6 +50,9 @@ public class ProducerApp {
                         "value " + i + " " +
                                 String.join("", Collections.nCopies(recordSize-10, "-"))
                 ));
+            }
+            if (interval > 0) {
+                Thread.sleep(interval);
             }
         }
     }
