@@ -32,11 +32,12 @@ public class RecvThread implements ConsumerService.AsyncIface {
         try {
             bis = new ByteArrayInputStream(byteBuffer.array());
             input = new ObjectInputStream(bis);
-            ConsumerRecord record = (ConsumerRecord) input.readObject();
+            ConsumerRecord<?> record = (ConsumerRecord<?>) input.readObject();
             String topic = record.topic();
 
             if (queue.containsKey(topic)) {
                 queue.get(topic).offer(record);
+                System.out.println("Received topic: " + record.topic() + ", value: " + record.value());
                 resultHandler.onComplete(Succ);
             } else {
                 resultHandler.onComplete(Fail);

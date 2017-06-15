@@ -61,8 +61,7 @@ public class Consumer {
             if (!subscription.contains(topic)) {
                 subscription.add(topic);
                 records.put(topic, new LinkedBlockingQueue<>());
-                zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
-                zkClient.setData().forPath(path, null);
+                zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path, null);
                 System.out.println("Subscribed to topic: " + topic);
             }
         } catch (Exception e) {
@@ -197,9 +196,12 @@ public class Consumer {
 
         Consumer consumer = new Consumer(configs);
 
-        consumer.subscribe(new String[]{"test topic"});
-
         consumer.start();
+
+
+        consumer.subscribe(new String[]{"test topic", "next topic"});
+
+
 
         HashMap<String, BlockingQueue<ConsumerRecord<?>>> records = consumer.records();
 
