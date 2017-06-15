@@ -62,6 +62,7 @@ public class Consumer {
                 subscription.add(topic);
                 records.put(topic, new LinkedBlockingQueue<>());
                 zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
+                zkClient.setData().forPath(path, null);
                 System.out.println("Subscribed to topic: " + topic);
             }
         } catch (Exception e) {
@@ -196,7 +197,7 @@ public class Consumer {
 
         Consumer consumer = new Consumer(configs);
 
-        consumer.subscribe(new String[]{"t1", "t2"});
+        consumer.subscribe(new String[]{"test topic"});
 
         consumer.start();
 
@@ -204,9 +205,8 @@ public class Consumer {
 
         try {
             while (true) {
-                System.out.println(records.get("t1"));
-                records.get("t1").poll();
-                Thread.sleep(50);
+                records.get("test topic").poll();
+                Thread.sleep(5000);
             }
         } catch (Exception e) {
             e.printStackTrace();

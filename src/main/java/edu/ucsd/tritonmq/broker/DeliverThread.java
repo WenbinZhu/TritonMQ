@@ -2,6 +2,7 @@ package edu.ucsd.tritonmq.broker;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -9,9 +10,11 @@ import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
 public class DeliverThread extends Thread {
     private Broker broker;
+    protected Map<String, Map<String, Long>> offsets;
 
     public DeliverThread(Broker broker) {
         this.broker = broker;
+        this.offsets = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -20,23 +23,33 @@ public class DeliverThread extends Thread {
             Set<String> topics = broker.records.keySet();
 
             // Initialize consumer offsets
-            topics.forEach(topic -> {
-                String topicPath = new File(SubscribePath, topic).toString();
+            try {
+                for (String topic : topics) {
+                    String topicPath = new File(SubscribePath, topic).toString();
 
-                if (!broker.offsets.containsKey(topic)) {
-                    try {
-                        List<String> consumers = broker.zkClient.getChildren().forPath(topicPath);
+                    if (broker.zkClient.checkExists().forPath(topicPath) == null)
+                        broker.zkClient.create().creatingParentsIfNeeded().forPath(topicPath);
 
-                        broker.offsets.put(topic, new ConcurrentHashMap<>());
-                        consumers.forEach(consumer -> {
-                            broker.offsets.get(topic).put(consumer, 0);
-                        });
+                    if (!offsets.containsKey(topic))
+                        offsets.put(topic, new ConcurrentHashMap<>());
 
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    List<String> consumers = broker.zkClient.getChildren().forPath(topicPath);
+
+                    for (String consumer : consumers) {
+                        String consumerPath = new File(topicPath, consumer).toString();
+                        byte[] data = broker.zkClient.getData().forPath(consumerPath);
+                        Long offset = data == null ? 0 : Long.valueOf(new String(data));
+
+                        offsets.get(topic).put(consumer, offset);
                     }
                 }
-            });
+
+                Thread.sleep(10);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
 
 
         }

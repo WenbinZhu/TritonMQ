@@ -43,7 +43,6 @@ public class Broker {
     protected volatile boolean isPrimary;
     protected Set<String> backups;
     protected Map<UUID, String> requests;
-    protected Map<String, Map<String, Integer>> offsets;
     protected Map<String, Deque<BrokerRecord<?>>> records;
 
 
@@ -67,7 +66,6 @@ public class Broker {
         this.retry = Integer.min(5, Integer.max(nr, 0));
         this.backups = new ConcurrentHashSet<>();
         this.records = new ConcurrentHashMap<>();
-        this.offsets = new ConcurrentHashMap<>();
         this.requests = new ConcurrentHashMap<>();
         this.zkClient = initZkClient(Second, 1, this.zkAddr, 100, 100);
 
@@ -149,6 +147,8 @@ public class Broker {
                     addListener(path);
                     timestamp = largestTimeStamp();
                     isPrimary = true;
+                    spawnDeliverThread();
+
                 }
             });
 
@@ -158,6 +158,10 @@ public class Broker {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    private void spawnDeliverThread() {
+        new DeliverThread(this).start();
     }
 
     /**
@@ -177,8 +181,6 @@ public class Broker {
         server = sb.build();
 
         server.start();
-        new DeliverThread(this).start();
-
         started = true;
     }
 

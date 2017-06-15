@@ -82,7 +82,7 @@ public class Producer<T> {
         ProducerRecord<String> record1 = new ProducerRecord<>("test topic", "test message");
         ProducerRecord<String> record2 = new ProducerRecord<>("test topic", "test message");
         ProducerRecord<String> record3 = new ProducerRecord<>("next topic", "test message");
-        // ProducerRecord<String> record4 = new ProducerRecord<>("test topic", "test message");
+        ProducerRecord<String> record4 = new ProducerRecord<>("test topic", "test message");
         // ProducerRecord<String> record5 = new ProducerRecord<>("test topic", "test message");
         // ProducerRecord<String> record6 = new ProducerRecord<>("test topic", "test message");
 
@@ -97,7 +97,7 @@ public class Producer<T> {
             System.out.println(meta.topic() + ", " + meta.succ());
         });
 
-        Thread.sleep(2000);
+        Thread.sleep(6000);
 
         CompletableFuture<ProducerMetaRecord> future3 = producer.publish(record3);
 
