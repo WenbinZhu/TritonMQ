@@ -135,6 +135,12 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
     private boolean getBackupResponse(BrokerRecord<?> record) throws Exception {
         int size = broker.backups.size();
+
+        // No backup
+        if (size == 0) {
+            return true;
+        }
+
         Count count = new Count();
         CountDownLatch latch = new CountDownLatch(size);
         ExecutorService executors = Executors.newFixedThreadPool(size);
