@@ -27,7 +27,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
         ObjectInputStream input = null;
         ProducerRecord<?> prod = null;
 
-        // Check if primary gets the request
+        // Check if it is the primary that gets the request
         if (!broker.isPrimary) {
             resultHandler.onError(new Exception("Not primary, primary may failed"));
             return;
@@ -53,7 +53,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
 
                 if (status == null) {
                     broker.requests.put(prod.uuid(), Pend);
-                } else {
+                } else if (status.equals(Succ) || status.equals(Pend)) {
                     resultHandler.onComplete(status);
                     return;
                 }
@@ -84,6 +84,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
             }
 
         } catch (Exception e) {
+            broker.requests.put(prod.uuid(), Fail);
             resultHandler.onComplete(Fail);
             e.printStackTrace();
             System.exit(1);
@@ -135,7 +136,7 @@ public class BrokerHandler implements BrokerService.AsyncIface {
         synchronized (broker.backups) {
             int size = broker.backups.size();
 
-            // No backupS
+            // No backups
             if (size == 0) {
                 return true;
             }

@@ -197,9 +197,10 @@ public class Broker {
     }
 
     protected synchronized long largestTimeStamp(String topic) {
-        long ts = 0;
-
         synchronized (records) {
+            if (!records.containsKey(topic) || records.get(topic).size() == 0)
+                return 0;
+
             return records.get(topic).lastKey();
         }
     }

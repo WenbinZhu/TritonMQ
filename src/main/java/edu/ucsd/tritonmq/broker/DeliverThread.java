@@ -27,19 +27,23 @@ public class DeliverThread extends Thread {
     @Override
     public void run() {
         while (true) {
-            Set<String> topics = broker.records.keySet();
-
             try {
+                List<String> topics = broker.zkClient.getChildren().forPath(SubscribePath);
+
                 // Initialize consumer offsets
                 for (String topic : topics) {
-                    if (offsets.containsKey(topic)) continue;
+                    if (!broker.records.containsKey(topic))
+                        broker.records.put(topic, new ConcurrentSkipListMap<>());
+
+                    if (offsets.containsKey(topic))
+                        continue;
 
                     String topicPath = new File(SubscribePath, topic).toString();
                     offsets.put(topic, new ConcurrentHashMap<>());
 
-                    if (broker.zkClient.checkExists().forPath(topicPath) == null) {
-                        broker.zkClient.create().creatingParentsIfNeeded().forPath(topicPath, null);
-                    }
+                    // if (broker.zkClient.checkExists().forPath(topicPath) == null) {
+                    //     broker.zkClient.create().creatingParentsIfNeeded().forPath(topicPath, null);
+                    // }
 
                     executors.execute(new DeliverHandler(topic));
                 }
@@ -70,14 +74,15 @@ public class DeliverThread extends Thread {
                     List<String> consumers = broker.zkClient.getChildren().forPath(topicPath);
 
                     for (String consumer : consumers) {
-                        if (offsets.get(topic).containsKey(consumer)) continue;
+                        if (offsets.get(topic).containsKey(consumer))
+                            continue;
 
                         String consumerPath = new File(topicPath, consumer).toString();
                         byte[] data = broker.zkClient.getData().forPath(consumerPath);
                         Long offset = data == null ? 0 : Long.valueOf(new String(data));
 
                         // Consumer cannot get records before it subscribes
-                        if (broker.records.containsKey(topic)) {
+                        if (offset == 0) {
                             offset = broker.largestTimeStamp(topic);
                             broker.zkClient.setData().forPath(consumerPath, offset.toString().getBytes());
                         }
