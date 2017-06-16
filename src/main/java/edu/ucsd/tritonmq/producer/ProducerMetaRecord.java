@@ -4,9 +4,7 @@ import edu.ucsd.tritonmq.common.MetaRecord;
 
 import java.util.UUID;
 
-/**
- * Created by Wenbin on 5/31/17.
- */
+s
 public class ProducerMetaRecord implements MetaRecord {
     private String topic;
     private UUID uuid;

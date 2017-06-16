@@ -15,9 +15,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static edu.ucsd.tritonmq.common.GlobalConfig.ZkAddr;
 import static org.junit.Assert.*;
 
-/**
- * Created by dangyi on 5/29/17.
- */
+
 public class BrokerTest {
     @Test
     public void brokerCanStart() throws Exception {

@@ -5,9 +5,6 @@ import java.util.concurrent.CompletableFuture;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
-/**
- * Created by dangyi on 5/28/17.
- */
 public class Producer<T> {
     private int retry;
     private int timeout;

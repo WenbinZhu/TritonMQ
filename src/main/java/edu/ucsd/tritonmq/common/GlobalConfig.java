@@ -1,9 +1,6 @@
 package edu.ucsd.tritonmq.common;
 
 
-/**
- * Created by Wenbin on 5/31/17.
- */
 public class GlobalConfig {
     public final static int Second = 1000;
 

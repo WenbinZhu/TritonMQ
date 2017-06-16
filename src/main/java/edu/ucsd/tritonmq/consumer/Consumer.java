@@ -19,9 +19,6 @@ import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static edu.ucsd.tritonmq.common.Utils.*;
 
 
-/**
- * Created by dangyi on 5/28/17.
- */
 public class Consumer {
     private int port;
     private String host;

@@ -24,9 +24,6 @@ import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static edu.ucsd.tritonmq.common.Utils.*;
 
 
-/**
- * Created by dangyi on 5/28/17.
- */
 public class Broker {
     protected int groupId;
     private int port;

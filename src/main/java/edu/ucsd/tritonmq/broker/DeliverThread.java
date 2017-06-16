@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
+
 public class DeliverThread extends Thread {
     private Broker broker;
     private Map<String, Map<String, Long>> offsets;

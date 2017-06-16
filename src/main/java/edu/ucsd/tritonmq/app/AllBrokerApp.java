@@ -1,8 +1,6 @@
 package edu.ucsd.tritonmq.app;
 
-/**
- * Created by dangyi on 6/14/17.
- */
+
 public class AllBrokerApp {
     public static void main(String[] args) throws InterruptedException {
         BrokerApp.main(new String[]{"--port=9000", "--groupId=0"});

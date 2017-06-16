@@ -8,15 +8,11 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.Properties;
-import java.util.Queue;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 
-/**
- * Created by dangyi on 5/29/17.
- */
+
 public class ConsumerTest {
     @Test
     public void ConsumerCanStart() throws InterruptedException {

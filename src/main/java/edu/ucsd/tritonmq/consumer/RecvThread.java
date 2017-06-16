@@ -14,9 +14,7 @@ import java.util.concurrent.BlockingQueue;
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static edu.ucsd.tritonmq.common.Utils.*;
 
-/**
- * Created by Wenbin on 6/5/17.
- */
+
 public class RecvThread implements ConsumerService.AsyncIface {
     private HashMap<String, BlockingQueue<ConsumerRecord<?>>> queue;
 

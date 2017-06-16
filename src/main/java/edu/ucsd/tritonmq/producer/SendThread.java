@@ -20,9 +20,7 @@ import java.util.concurrent.*;
 import static edu.ucsd.tritonmq.common.GlobalConfig.*;
 import static edu.ucsd.tritonmq.common.Utils.*;
 
-/**
- * Created by Wenbin on 5/31/17.
- */
+
 public class SendThread extends Thread {
     private int retry;
     private int timeout;

@@ -11,9 +11,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.ZkAddr;
 
-/**
- * Created by dangyi on 6/14/17.
- */
+
 public class ProducerApp {
     public static void main(String[] args) throws InterruptedException {
         Properties configs = new Properties();

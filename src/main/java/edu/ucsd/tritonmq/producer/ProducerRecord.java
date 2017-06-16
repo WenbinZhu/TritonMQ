@@ -4,9 +4,7 @@ import edu.ucsd.tritonmq.common.Record;
 
 import java.util.UUID;
 
-/**
- * Created by Wenbin on 5/31/17.
- */
+
 public class ProducerRecord<T> implements Record<T> {
     private String topic;
     private T value;

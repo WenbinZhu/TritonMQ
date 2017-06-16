@@ -7,9 +7,7 @@ import java.util.Properties;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.ZkAddr;
 
-/**
- * Created by dangyi on 5/29/17.
- */
+
 public class ProducerTest {
 
     @Test

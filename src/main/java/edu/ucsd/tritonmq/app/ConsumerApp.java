@@ -12,9 +12,7 @@ import java.util.stream.IntStream;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.ZkAddr;
 
-/**
- * Created by dangyi on 6/14/17.
- */
+
 public class ConsumerApp {
     public static void main(String[] args) throws InterruptedException {
         Properties configs = new Properties();
