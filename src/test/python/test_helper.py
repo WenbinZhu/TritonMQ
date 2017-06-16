@@ -1,6 +1,7 @@
 from subprocess import Popen, PIPE, CalledProcessError
 from threading import Thread
 import sys, os
+from time import sleep
 
 ROOT = os.path.abspath(__file__ + '/../../../..')
 _built = False
@@ -45,6 +46,7 @@ def run_class(name, **config):
     p = Popen(cmd, shell=True)
     # p = Popen(cmd, shell=True, stdout=1, stderr=2)
     # Thread(target=monitor_process, args=(p, CalledProcessError(0, name, ''))).start()
+    sleep(1)
     return p
 
 

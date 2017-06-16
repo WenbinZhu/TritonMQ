@@ -19,7 +19,9 @@ public class ConsumerProducerApp {
             value = value.split(" ")[0];
             System.out.println("Received " + record.topic() + ", " + value);
 
-            assert dict.get(record.topic()).remove(value) : record.topic() + "  " + value;
+            if (dict.get(record.topic()).remove(value) == false) {
+                System.err.println("Duplicate! " + record.topic() + "  " + value);
+            }
             if (counter.decrementAndGet() == 0) {
                 System.exit(0);
             }
