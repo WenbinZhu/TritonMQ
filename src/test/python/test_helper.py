@@ -19,7 +19,7 @@ def monitor_process(process, error):
     :type error: CalledProcessError
     """
     stdout, stderr = process.communicate()
-    if process.returncode != 0:
+    if process.returncode not in [0, -9]:
         print stdout
         print >> sys.stderr, stderr
         error.returncode = process.returncode
@@ -31,7 +31,7 @@ def monitor_process(process, error):
 
 
 def build_cmd(name, args):
-    return 'cd {} && mvn exec:java -Dexec.mainClass={}'.format(ROOT, name) + \
+    return 'cd {} && exec mvn exec:java -Dexec.mainClass={}'.format(ROOT, name) + \
             ' -Dexec.args="{}"'.format(' '.join(args))
 
 
@@ -40,11 +40,11 @@ def run_class(name, **config):
     :type name: str
     :type config: dict
     """
-    build_first()
     args = ['--{}={}'.format(key, value) for key, value in config.iteritems()]
     cmd = build_cmd(name, args)
-    p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-    Thread(target=monitor_process, args=(p, CalledProcessError(0, name, ''))).start()
+    p = Popen(cmd, shell=True)
+    # p = Popen(cmd, shell=True, stdout=1, stderr=2)
+    # Thread(target=monitor_process, args=(p, CalledProcessError(0, name, ''))).start()
     return p
 
 

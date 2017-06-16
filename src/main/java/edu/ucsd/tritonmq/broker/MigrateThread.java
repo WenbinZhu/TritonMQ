@@ -18,6 +18,7 @@ public class MigrateThread extends Thread {
 
     @Override
     public void run() {
+        System.out.println("Migrate " + this.primary + " to " + this.backup);
         String backupAddr = "tbinary+http://" + backup;
         BrokerService.AsyncIface client = Clients.newClient(backupAddr, BrokerService.AsyncIface.class);
 

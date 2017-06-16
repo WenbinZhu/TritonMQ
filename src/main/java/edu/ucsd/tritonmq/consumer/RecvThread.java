@@ -35,7 +35,7 @@ public class RecvThread implements ConsumerService.AsyncIface {
 
             if (queue.containsKey(topic)) {
                 queue.get(topic).offer(record);
-                System.out.println("Received topic: " + record.topic() + ", value: " + record.value());
+//                System.out.println("Received topic: " + record.topic() + ", value: " + record.value());
                 resultHandler.onComplete(Succ);
             } else {
                 resultHandler.onComplete(Fail);

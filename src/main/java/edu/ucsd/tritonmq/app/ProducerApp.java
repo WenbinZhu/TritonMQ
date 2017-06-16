@@ -8,12 +8,20 @@ import edu.ucsd.tritonmq.producer.ProducerRecord;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import static edu.ucsd.tritonmq.common.GlobalConfig.ZkAddr;
 
 
 public class ProducerApp {
     public static void main(String[] args) throws InterruptedException {
+        createProducer(args, (meta, value) -> {
+            System.out.println(meta.topic() + " " + value + ": " + meta.succ());
+        });
+    }
+
+    public static void createProducer(String[] args, BiConsumer<ProducerMetaRecord, String> cb) throws InterruptedException {
         Properties configs = new Properties();
 
         configs.put("retry", 2);
@@ -44,18 +52,13 @@ public class ProducerApp {
         int interval = (Integer) configs.get("interval");
 
         for (int i = 0; i < recordCount; i++) {
-//            if (i != 1 || i != 4 || i != 7)
-//                continue;
-
             for (int j = 0; j < topicCount; j++) {
-                int finalI = i;
+                String value = "value" + i;
+                String topic = "topic" + j;
                 producer.publish(new ProducerRecord<String>(
-                        "topic" + j,
-                        "value " + i + " " +
-                                String.join("", Collections.nCopies(recordSize - 10, "-"))
-                )).thenAccept(meta -> {
-                    System.out.println(meta.topic() + " value " + finalI + ": " + meta.succ());
-                });
+                        topic,
+                        value + " " + String.join("", Collections.nCopies(recordSize - 10, "-"))
+                )).thenAccept(meta -> cb.accept(meta, value));
             }
             if (interval > 0) {
                 Thread.sleep(interval);
