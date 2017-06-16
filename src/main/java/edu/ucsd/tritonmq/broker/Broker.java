@@ -196,6 +196,14 @@ public class Broker {
         return ts + 1;
     }
 
+    protected synchronized long largestTimeStamp(String topic) {
+        long ts = 0;
+
+        synchronized (records) {
+            return records.get(topic).lastKey();
+        }
+    }
+
     protected synchronized long incrementTs() {
         return ++timestamp;
     }

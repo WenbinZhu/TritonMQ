@@ -76,6 +76,12 @@ public class DeliverThread extends Thread {
                         byte[] data = broker.zkClient.getData().forPath(consumerPath);
                         Long offset = data == null ? 0 : Long.valueOf(new String(data));
 
+                        // Consumer cannot get records before it subscribes
+                        if (broker.records.containsKey(topic)) {
+                            offset = broker.largestTimeStamp(topic);
+                            broker.zkClient.setData().forPath(consumerPath, offset.toString().getBytes());
+                        }
+
                         offsets.get(topic).put(consumer, offset);
                         executors.execute(new SendHandler(topic, consumer));
                     }
