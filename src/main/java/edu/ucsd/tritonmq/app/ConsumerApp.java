@@ -50,13 +50,12 @@ public class ConsumerApp {
 
         for (int i = 0; i < topicCount; i++) {
             String topic = "topic" + i;
-            BlockingQueue<ConsumerRecord<?>> consumerRecords = records.get(topic);
             consumer.subscribe(topic);
 
             new Thread(() -> {
                 while (true) {
                     try {
-                        ConsumerRecord<?> record = consumerRecords.poll(30, TimeUnit.SECONDS);
+                        ConsumerRecord<?> record = records.get(topic).poll(30, TimeUnit.SECONDS);
                         if (record != null) {
                             cb.accept(record);
                         }
