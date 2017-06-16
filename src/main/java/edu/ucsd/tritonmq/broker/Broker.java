@@ -95,8 +95,10 @@ public class Broker {
                         Set<String> current = new HashSet<>();
                         List<String> nodes = client.getChildren().forPath(path);
 
-                        for (String node : nodes)
-                            current.add(new String(client.getData().forPath(node)));
+                        for (String node : nodes) {
+                            String fullPath = new File(path, node).toString();
+                            current.add(new String(client.getData().forPath(fullPath)));
+                        }
 
                         for (String backup : backups) {
                             if (!current.contains(backup)) {
