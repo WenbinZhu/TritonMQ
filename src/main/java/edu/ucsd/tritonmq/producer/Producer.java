@@ -16,7 +16,12 @@ public class Producer<T> {
     private SendThread sendThread;
 
     /**
-     * Create a producer
+     * Create a producer with the configs as follows:
+     *
+     * retry: number of max retries
+     * timeout: max timeout milliseconds
+     * maxInFlight: max number of records that can be sent in a batch
+     * zkAddr: Zookeeper address
      *
      * @param configs producer configs including zk address etc
      */

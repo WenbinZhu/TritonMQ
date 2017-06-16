@@ -34,7 +34,11 @@ public class Consumer {
     private HashMap<String, BlockingQueue<ConsumerRecord<?>>> records;
 
     /**
-     * Create a consumer
+     * Create a consumer with the configs as follows:
+     *
+     * host: host name
+     * port: port number
+     * zkAddr: ZooKeeper address
      *
      * @param configs consumer configs including zk address etc
      */
