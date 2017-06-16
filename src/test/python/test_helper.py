@@ -46,7 +46,7 @@ def run_class(name, **config):
     p = Popen(cmd, shell=True)
     # p = Popen(cmd, shell=True, stdout=1, stderr=2)
     # Thread(target=monitor_process, args=(p, CalledProcessError(0, name, ''))).start()
-    sleep(1)
+    sleep(0.5)
     return p
 
 

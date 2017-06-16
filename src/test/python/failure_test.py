@@ -37,7 +37,7 @@ def main():
             print "================ Stop {} in group {}".format(i, group)
             brokers[i].kill()
             brokers[i] = None
-        sleep(3)
+        sleep(1)
 
 if __name__ == '__main__':
     main()
