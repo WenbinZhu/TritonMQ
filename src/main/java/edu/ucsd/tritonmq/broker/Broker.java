@@ -91,7 +91,7 @@ public class Broker {
                 }
 
                 case CHILD_REMOVED: {
-                    String backup = ZKPaths.getNodeFromPath(event.getData().getPath());
+                    String backup = new String(client.getData().forPath(event.getData().getPath()));
                     backups.remove(backup);
                     break;
                 }
