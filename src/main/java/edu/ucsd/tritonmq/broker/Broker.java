@@ -91,8 +91,21 @@ public class Broker {
                 }
 
                 case CHILD_REMOVED: {
-                    String backup = new String(client.getData().forPath(event.getData().getPath()));
-                    backups.remove(backup);
+                    synchronized (backups) {
+                        Set<String> current = new HashSet<>();
+                        List<String> nodes = client.getChildren().forPath(path);
+
+                        for (String node : nodes)
+                            current.add(new String(client.getData().forPath(node)));
+
+                        for (String backup : backups) {
+                            if (!current.contains(backup)) {
+                                System.out.println(backup + " removed from group " + groupId);
+                                backups.remove(backup);
+                            }
+                        }
+                    }
+
                     break;
                 }
             }
