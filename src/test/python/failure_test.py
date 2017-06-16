@@ -15,14 +15,16 @@ def main():
         run_class('edu.ucsd.tritonmq.app.BrokerApp', port=9007, groupId=2),
         run_class('edu.ucsd.tritonmq.app.BrokerApp', port=9008, groupId=2),
     ]
-    sleep(20)
+    sleep(10)
     while True:
         print [i is not None for i in brokers]
-        i = raw_input('Please input a number to manipulate (empty to random one) ')
+        i = raw_input('Please input a number to manipulate ("r" to random one) ')
         if i.isdigit():
             i = int(i)
-        else:
+        elif i == 'r':
             i = random.randrange(0, 9)
+        else:
+            continue
         group = i // 3
         if brokers[i] is None:
             print "================ Start {} in group {}".format(i, group)
@@ -35,7 +37,7 @@ def main():
             print "================ Stop {} in group {}".format(i, group)
             brokers[i].kill()
             brokers[i] = None
-        sleep(10)
+        sleep(3)
 
 if __name__ == '__main__':
     main()
