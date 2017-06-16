@@ -148,8 +148,8 @@ public class DeliverThread extends Thread {
 
                     future.thenAccept(response -> {
                         if (response.equals(Succ)) {
-                            latch.countDown();
                             updateOffset(brod.timestamp());
+                            latch.countDown();
                         }
                     }).exceptionally(cause -> {
                         // cause.printStackTrace();
