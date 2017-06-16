@@ -181,14 +181,8 @@ public class Consumer {
         }
     }
 
-    /**
-     * Close a consumer connection
-     */
-    void close() {
-
-    }
-
     public static void main(String[] args) throws InterruptedException {
+        // Just for tests
         Properties configs = new Properties();
         configs.put("host", "localhost");
         configs.put("port", 5001);

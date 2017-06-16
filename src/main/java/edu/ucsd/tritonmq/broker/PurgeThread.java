@@ -39,7 +39,7 @@ public class PurgeThread extends Thread {
                             offsets.add(Long.valueOf(new String(data)));
                         }
 
-                        long largest = Collections.min(offsets);
+                        long largest = offsets.size() == 0 ? 0 : Collections.min(offsets);
                         ConcurrentSkipListMap<Long, BrokerRecord<?>> skipList = entry.getValue();
 
                         for (Long timestamp : skipList.keySet()) {

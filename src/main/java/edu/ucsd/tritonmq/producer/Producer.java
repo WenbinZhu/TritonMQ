@@ -74,6 +74,7 @@ public class Producer<T> {
     }
 
     public static void main(String[] args) throws InterruptedException {
+        // Just for tests
         Properties configs = new Properties();
         configs.put("retry", 2);
         configs.put("timeout", 500);
