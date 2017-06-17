@@ -51,5 +51,5 @@ def run_class(name, **config):
 
 
 if __name__ == '__main__':
-    build_first()
+    # build_first()
     os.system(build_cmd(sys.argv[1], sys.argv[2:]))
