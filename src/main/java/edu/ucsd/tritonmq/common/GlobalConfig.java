@@ -16,7 +16,7 @@ public class GlobalConfig {
 
     public final static String Pend = "Pend";
 
-    public final static String ZkAddr = "localhost:2181";
+    public final static String ZkAddr = "100.81.36.167:2181";
 
     public final static String SubscribePath = "/subscribe";
 

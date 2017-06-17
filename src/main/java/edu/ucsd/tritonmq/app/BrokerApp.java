@@ -13,11 +13,11 @@ public class BrokerApp {
 
         configs.put("retry", 1);
         configs.put("timeout", 1000);
-        configs.put("host", "localhost");
-        configs.put("port", 9006);
+        configs.put("host", "100.81.36.167");
+        configs.put("port", 8000);
         configs.put("zkAddr", ZkAddr);
 
-        configs.put("groupId", 2);
+        configs.put("groupId", 0);
 
         for (String arg : args) {
             if (arg.substring(0, 2).equals("--")) {

@@ -23,7 +23,7 @@ public class ConsumerApp {
     public static Consumer createConsumer(String[] args, java.util.function.Consumer<ConsumerRecord> cb) throws InterruptedException {
         Properties configs = new Properties();
 
-        configs.put("host", "localhost");
+        configs.put("host", "100.81.36.167");
         configs.put("port", 5001);
         configs.put("zkAddr", ZkAddr);
 

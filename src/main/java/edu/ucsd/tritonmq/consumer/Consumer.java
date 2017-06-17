@@ -151,7 +151,7 @@ public class Consumer {
     }
 
     /**
-     * stop receiving records from all topic
+     * Unsubscribe and stop receiving records from all topic
      */
     public synchronized void stop() {
         unSubscribe(subscription());
