@@ -25,11 +25,11 @@ public class ProducerApp {
         Properties configs = new Properties();
 
         configs.put("retry", 2);
-        configs.put("timeout", 500);
-        configs.put("maxInFlight", 2);
+        configs.put("timeout", 100);
+        configs.put("maxInFlight", 1);
         configs.put("zkAddr", ZkAddr);
 
-        configs.put("recordCount", 50);
+        configs.put("recordCount", 10);
         configs.put("topicCount", 10);
         configs.put("recordSize", 100);
         configs.put("interval", 200);
