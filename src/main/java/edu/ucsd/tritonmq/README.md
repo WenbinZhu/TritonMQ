@@ -11,6 +11,7 @@
 
 - Java == 1.8
 - ZooKeeper >=  3.5.2
+- Use `maven compile` to build 
 
 ### Packages:
 - src/main/java/edu/ucsd/tritonmq/app: programs we use for tests and evaluations
