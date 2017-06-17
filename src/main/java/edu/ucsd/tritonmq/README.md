@@ -13,7 +13,7 @@
 - ZooKeeper >=  3.5.2
 
 ### Packages:
-- src/main/java/edu/ucsd/tritonmq/app: programs we use for evalut sc, can be used as examples
+- src/main/java/edu/ucsd/tritonmq/app: programs we use for tests and evaluations
 - src/main/java/edu/ucsd/tritonmq/broker: core broker service
 - src/main/java/edu/ucsd/tritonmq/producer: producer client library
 - src/main/java/edu/ucsd/tritonmq/consumer: consumer client library
