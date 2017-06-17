@@ -15,8 +15,8 @@ public class Producer<T> {
     /**
      * Create a producer with the configs as follows:
      *
-     * retry: number of max retries
-     * timeout: max timeout milliseconds
+     * retry: max number of max retry
+     * timeout: max timeout in milliseconds
      * maxInFlight: max number of records that can be sent in a batch
      * zkAddr: Zookeeper address
      *

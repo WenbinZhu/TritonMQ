@@ -47,7 +47,12 @@ public class Broker {
      * Create a new broker in a specific group.
      *
      * @param groupId which group this broker belongs to
-     * @param configs broker configs including zk address etc
+     * @param configs broker configs including:
+     * retry: max number of retry
+     * host: host name
+     * port: port number
+     * zkAddr: ZooKeeper address
+     * timeout: max timeout milliseconds
      */
     public Broker(int groupId, Properties configs) {
         int nr = (Integer) configs.get("retry");
