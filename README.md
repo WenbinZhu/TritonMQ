@@ -13,7 +13,7 @@
 
 1. Consumers can subscribe to some topics and get the messages related to the topics. We plan to use the push model for consumers, namely, brokers push messages to consumers instead of consumers poll from brokers. The push model is better for our project because all the messages are in-memory, and the broker should deliver and purge the messages as soon as possible to save memory space.
 2. We plan to first develop a one-to-all semantics for consumers: a message will be sent to all consumers (e.g. a chat room application), we can add a one-to-one semantics (a message is sent to any and only one consumer who subscribed to the topic) later if time allows.
-3. On start up, the consumer will register itself to Zookeeper. Each consumer is also associated with an offset registry, indicating the last consumed offset in a topic.
+3. Upon subscribing, the consumer will register itself to Zookeeper. Each consumer is also associated with an offset registry, indicating the last consumed offset in a topic.
 4. A new consumer should only be able to receive new messages produced after it joins.
 5. We provide a semantics that the a consumer receives the messages of a topic in a strictly identical order as in the brokers. So the broker will advance the offset only when a consumer acknowledges a message.
 
@@ -22,27 +22,7 @@
 1. Brokers store  and manage messages from producer, replicate messages to other broker servers and push messages to consumers.
 2. To makes things easier, we consider using in-memory storage only and fix the max number of brokers (just like lab 3, fix max number but each broker server can up and down).
 3. Users can specify number of replications in a global config file, and Zookeeper is used for registering the brokers, monitoring, and electing leaders if some server in a replica group fails (group members are also fixed).
-4. The primary brokers will record the offsets of each consumer w.r.t. to the topics and write to ZooKeeper periodically  in case of primary failure.
+4. The primary brokers will record the offsets of each consumer w.r.t. to the topics and write to ZooKeeper in case of primary failure.
 5. The primary brokers has a thread periodically purging the messages. A message can be disposed only if all registered consumers for its topic have acknowledged (i.e. all the offsets are larger than this message). The primary also send purge messages to backups instruction them to delete those messages.
 6. Once the ZooKeeper detects the primary down, it select another backup as new primary and any other nodes in the same group will be notified.
 7. In case of failure, migrations are needed to prevent data loss. We follow the same assumption as in lab3 that in a replica group, no other nodes will fail before migration completes.
-
-
-
-## Implementation
-
-ZooKeeper should store the following information
-
-1. Number of groups and their nodes' addresses. 
-2. For each topic, the clients connected to this topic and their offset (position).
-
-ZooKeeper should have following structure
-
-```
-/groups/GROUP_ID
-	/replica/NODE_ADDR (ephemeral)
-	/primary => NODE_ADDR
-	/topics/TOPIC_NAME
-		/CLIENT_ADDR (ephemeral) => OFFSET
-```
-
