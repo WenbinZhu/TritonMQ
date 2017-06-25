@@ -5,10 +5,10 @@
 ### Producers
 1. Produces can generate messages related to specific topics and send to brokers.
 2. To provide load balance, producers will first contact Zookeeper, and find a leader in a group by hashing the topic name, and send messages to the leader. The message looks like: `<message, topic, uuid>`.
-3. Each message produced by producers is associated with a unique id decided by producer (uuid), which is used to prevent duplication: producers can retry sending a same message if they do not hear a response for some while and the receivers remember each message received with the uuid, and if duplicate messages are received, simple acknowledge it without appending it to its log.
-4. The primary will forward the message to backups. To provide high reliability in cases of failure, only when the all the backups acknowledge the message can the primary send response to the produce.
+3. Each message produced by producers is associated with a unique id decided by producer (uuid), which is used to prevent duplication: producers can retry sending a same message if they do not hear a response for some while and the receivers remember each message received with the uuid, and if duplicate messages are received, simply acknowledge it without appending it to its log.
+4. The primary will replicate the message to backups. To provide high reliability in cases of failure, only when the all the backups acknowledge the message can the primary send response to the produce.
 5. Each message forwarded by the primary is also associated with a unique incremental timestamp (ts) decided by primary, to keep the order of messages in case the primary fails and a backup becomes the new primary. The message stored on primary and backups looks like:  `<message, topic, uuid, ts>`.
-6. The producer will get a watcher from ZooKeeper. If it is noticed that the leader broker fails, it will send to the new leader in the group.
+6. The producer will get a listener from ZooKeeper. If it is noticed that the leader broker fails, it will send to the new leader in the group.
 7. We provide a consistency semantics that messages from a producer be kept in order, but messages from different producers can be in arbitrary (just like sequential consistency). However, the producer can specify a `max_in_flight` configuration for each topic, indicating how many messages can be sent asynchronously at a time to loose the order of the messages from a producer.
 
 ### Consumers
