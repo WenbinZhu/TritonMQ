@@ -1,4 +1,6 @@
-## Design
+## TritonMQ
+### A Real-Time Fault-tolerant In-Memory Distributed Message Queue
+---
 
 ### Producers
 1. Produces can generate messages related to specific topics and send to brokers.
