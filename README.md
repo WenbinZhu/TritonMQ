@@ -25,4 +25,4 @@
 4. The primary brokers will record the offsets of each consumer w.r.t. to the topics and write to ZooKeeper in case of primary failure.
 5. The primary brokers has a thread periodically purging the messages. A message can be disposed only if all registered consumers for its topic have acknowledged (i.e. all the offsets are larger than this message). The primary also send purge messages to backups instruction them to delete those messages.
 6. Once the ZooKeeper detects the primary down, it select another backup as new primary and any other nodes in the same group will be notified.
-7. In case of failure, migrations are needed to prevent data loss from primary to backups.
+7. In case of failure, migrations are performed from primary to backups to prevent data loss.
