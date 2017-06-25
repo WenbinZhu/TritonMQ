@@ -20,9 +20,9 @@
 ### Brokers
 
 1. Brokers store  and manage messages from producer, replicate messages to other broker servers and push messages to consumers.
-2. To makes things easier, we consider using in-memory storage only and fix the max number of brokers (just like lab 3, fix max number but each broker server can up and down).
+2. To makes things easier, we consider using in-memory storage only and fix the max number of brokers (fix max number but each broker server can up and down). Horizonal scalability can be achieved by increasing the number of broker groups.
 3. Users can specify number of replications in a global config file, and Zookeeper is used for registering the brokers, monitoring, and electing leaders if some server in a replica group fails (group members are also fixed).
 4. The primary brokers will record the offsets of each consumer w.r.t. to the topics and write to ZooKeeper in case of primary failure.
 5. The primary brokers has a thread periodically purging the messages. A message can be disposed only if all registered consumers for its topic have acknowledged (i.e. all the offsets are larger than this message). The primary also send purge messages to backups instruction them to delete those messages.
 6. Once the ZooKeeper detects the primary down, it select another backup as new primary and any other nodes in the same group will be notified.
-7. In case of failure, migrations are needed to prevent data loss. We follow the same assumption as in lab3 that in a replica group, no other nodes will fail before migration completes.
+7. In case of failure, migrations are needed to prevent data loss from primary to backups.
